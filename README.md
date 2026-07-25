@@ -14,28 +14,45 @@ objective types and AI brains are all additive.
 
 ---
 
-## Running it
+## Running the game and editor
 
 ```bash
 npm install
 ```
 
+Regenerate the pixel-art assets when changing an asset generator:
+
 ```bash
 npm run assets
 ```
 
+Start the game:
+
 ```bash
-npm run dev
+npm run dev:game
 ```
 
 Then open <http://localhost:5173>.
 
+Start the editor in a second terminal:
+
+```bash
+npm run dev:editor
+```
+
+Then open <http://localhost:5174>. Keep the game dev server running if you want
+the editor's **Playtest** button to open the selected room.
+
 | Script | What it does |
 |---|---|
-| `npm run assets` | Regenerates every PNG + metadata JSON into `public/assets/` (needs Python 3 with Pillow) |
-| `npm run dev` | Vite dev server on :5173 |
-| `npm run build` | Production bundle into `dist/` |
-| `npm test` | Headless `node --test` suite — rules, dice, quest logic and content validation |
+| `npm run assets` | Regenerates every PNG + metadata JSON into `apps/game/public/assets/` (needs Python 3 with Pillow) |
+| `npm run dev:game` | Game dev server on :5173 |
+| `npm run dev:editor` | Local content editor on :5174 |
+| `npm run build:game` | Production game bundle in `apps/game/dist/` |
+| `npm run build:editor` | Production editor bundle in `apps/editor/dist/` |
+| `npm run build` | Builds the game and editor independently |
+| `npm run validate:content` | Validates canonical content and cross-references |
+| `npm test` | Shared-content, game, editor, persistence and isolation tests |
 
 Append `?debug=1` to the URL for a collision overlay, the melee hitbox, a live
 state readout, and hotkeys (`1` heal, `2` ammo, `3` next room).
@@ -57,32 +74,31 @@ state readout, and hotkeys (`1` heal, `2` ammo, `3` next room).
 ## How it fits together
 
 ```
-tools/                 Python asset pipeline -> public/assets/
-src/
-  config.js            tuning constants (speeds, damage, room size, depths)
-  core/
-    EventBus.js        dependency-free emitter; the seam between gameplay and quests
-    GameState.js       character sheet, wallet, inventory, flags, save/load
-    RoomManager.js     ASCII -> tilemap, collision, screen transitions
-    AnimationFactory.js builds every anim from the fixed sheet layout
-  entities/            Actor base -> Player / Enemy / Npc / Pickup / Interactable
-    ai/                pluggable enemy brains
-  quests/
-    Conditions.js      one predicate + effect language
-    dice.js            Shadowrun dice pools
-    DialogueRunner.js  walks a dialogue graph (pure logic)
-    JobManager.js      listens on the bus, advances objectives
-    objectives.js      objective-type registry
-  scenes/              Boot / World / Hud / Dialogue / Journal / GameOver
-  data/                thin game adapters for shared canonical content
-apps/editor/            React + TypeScript local content editor
-packages/content/       canonical JSON, schemas, validation, persistence
-apps/game/tests/        headless game node:test suite
+tools/                    Python asset pipeline -> apps/game/public/assets/
+apps/
+  game/
+    src/
+      config.js           tuning constants (speeds, damage, room size, depths)
+      core/               state, events, rooms and animation
+      entities/           actors, interactables and enemy AI
+      quests/             conditions, dialogue, dice, jobs and objectives
+      scenes/             Boot / World / Hud / Dialogue / Journal / GameOver
+      data/               thin adapters around shared canonical content
+    public/assets/        generated runtime art and metadata
+    tests/                headless game rules tests
+  editor/
+    src/                  React + TypeScript authoring UI
+    tests/                editor model and history tests
+packages/
+  content/
+    data/                 canonical JSON edited by the editor
+    src/                  contracts, compiler, validation and safe persistence
+    tests/                content and persistence tests
 ```
 
 ### Why the text is a bitmap font
 
-All UI text goes through `src/ui/text.js`, which uses a **generated bitmap font**
+All UI text goes through `apps/game/src/ui/text.js`, which uses a **generated bitmap font**
 (`tools/gen_font.py` → `ui_font.png`, 100 glyphs at 5×7 in a 6×8 cell) rather
 than Phaser's `Text` object.
 
@@ -93,115 +109,123 @@ just sprites, so it scales identically to everything else. Glyphs are drawn
 white, so colour is a tint.
 
 For the same reason the game scales by **whole multiples only**
-(`Scale.MAX_ZOOM` plus an integer-snapping resize handler in `main.js`).
+(`Scale.MAX_ZOOM` plus an integer-snapping resize handler in
+`apps/game/src/main.js`).
 `Scale.FIT` would pick a fractional factor like 4.21×, making some source pixels
 4 screen pixels wide and others 5 — text is where that unevenness shows worst.
 
 Three design decisions carry most of the extensibility:
 
 1. **The generated tileset JSON is the single source of truth for collision.**
-`tools/gen_tileset.py` emits `solid` per tile; the game reads it. Art and
+   `tools/gen_tileset.py` emits `solid` per tile; the game reads it. Art and
    physics cannot drift apart, and tile ids may be reshuffled freely.
 2. **Rooms are ASCII art.** Editing a 20×15 grid of numbers by hand is
    unbearable; a room is two arrays of strings plus a shared legend.
-3. **One condition/effect language.** `Conditions.js` powers dialogue gating,
+3. **One condition/effect language.** `apps/game/src/quests/Conditions.js`
+   powers dialogue gating,
    objective prerequisites and conditional spawns alike, so a new predicate is
    instantly available everywhere.
 
 ---
 
-## How to add a…
+## Authoring content with Content Forge
 
-### …glyph
+Content Forge is the default way to edit the data-driven parts of the game.
+It reads and writes the canonical JSON in `packages/content/data/`; the game
+consumes the same shared package, so there is no separate export or copy step.
 
-Add an entry to `G` in `tools/gen_font.py` (7 strings of 5 characters, `#` is
-ink) and append the character to `CHARS`, then `npm run assets`. The atlas
-layout is published in `fx_manifest.json`, so the game picks it up with no code
-change.
+### Editing safely
 
-### …tile
+1. Run `npm run dev:game` and `npm run dev:editor` in separate terminals.
+2. Make changes in the editor. Changes remain an in-memory draft until saved.
+3. Watch the validation bar at the bottom of the editor. Click an issue to jump
+   to the affected content.
+4. Use **Save** or `Ctrl+S` to write all changed content resources. Invalid
+   projects cannot be saved.
+5. Use **Playtest** to open the selected room in the running game.
 
-1. Write a draw function in `tools/gen_tileset.py` and decorate it:
+The editor supports undo and redo (`Ctrl+Z` / `Ctrl+Y`), warns about unsaved
+changes, detects files changed outside the editor, and rolls back a multi-file
+save if any replacement fails. Use **Reload** to discard the current draft and
+read the latest files from disk.
 
-   ```python
-   @tile('holo_kiosk', solid=True, tags=['prop'])
-   def t_holo_kiosk(px):
-       rect(px, 2, 3, 13, 15, METAL_D, TILE, TILE)
-       glow(px, 8, 6, with_alpha(CYAN, 120), 6, TILE, TILE)
-   ```
+### Rooms and world layout
 
-2. Give it a legend character in `packages/content/data/tiles.json`.
-3. `npm run assets`. Collision follows from `solid` automatically.
+- Open **World** to inspect the complete room graph. Normal exits and doors are
+  both shown; click a room node to open it.
+- In **Rooms**, choose the `Ground` or `Decor` layer, choose a tile from the
+  palette, and click cells on the 20×15 canvas to paint.
+- Right-click a cell to pick its tile. Choose the `×` palette entry to erase.
+- Set the player start coordinates and the north/east/south/west room
+  connections in the room inspector.
+- Use **Entities → Add** to place an enemy, NPC, pickup, door or terminal.
+  Select a numbered marker on the canvas or entity list to edit its position,
+  archetype, item and advanced properties.
 
-### …room (screen)
+The palette shows the generated art directly. Horizontal and vertical wall
+variants remain distinct, so use the tile preview to choose the variant that
+matches the wall's direction.
 
-1. Add the room to `packages/content/data/rooms.json`. A room is
-   `ground` + `decor`, each 15 strings of exactly 20 characters (`' '` = empty).
-2. **Match the wall tile to the direction it runs.** Masonry tiles come in
-   pairs — `#`/`|` (street), `I`/`j` (interior), `L`/`(` (rooftop ledge). The
-   first of each has courses running left-to-right for top and bottom edges;
-   the second runs vertically for the left and right columns. Using a
-   horizontal tile down a column reads as a stack of misplaced top-wall pieces.
-   `C` (corrugated) already has vertical ridges and works in either run.
-3. Add it to its level's `rooms` list in `packages/content/data/levels.json`.
-4. Add an `exits` entry on a neighbour pointing at it (`north`/`south`/`east`/
-   `west`), or a `door` spawn with `to:`.
-5. `npm test` validates the dimensions, legend characters, exits and spawn
-   references — a typo fails there rather than silently rendering a hole.
+### Actors and items
 
-### …enemy
+- Open **Actors** and switch between enemy and NPC archetypes. Edit tuning
+  fields such as health, speed, damage, AI brain and sheet, with nested drops
+  and tags available under **Structured properties**.
+- Open **Items** to edit names, icons, descriptions, pickup behavior and
+  structured effects.
+- Room spawn and job-objective inspectors use the current actor and item IDs as
+  reference choices, avoiding free-form cross-reference typos.
 
-1. Add a spec to `SPECS` in `tools/gen_actors.py` (colours + feature flags; a
-   palette swap is just another spec) and run `npm run assets`.
-2. Add an archetype to `enemies` in `packages/content/data/actors.json` — hp, speed, damage,
-   `brain`, `drops`, `tags`.
-3. Spawn it from a room: `{ type: 'enemy', archetype: 'my_goon', x, y, brain,
-   path: [[x1,y1],[x2,y2]] }`.
+### Dialogue
 
-Only write a new brain in `src/entities/ai/index.js` if the behaviour genuinely
-differs; a brain is one object with a `think(enemy, player, dt)` method.
+- Open **Dialogue**, select a graph, then select a node card.
+- Edit node text and its direct next-node link in the inspector.
+- Edit choices, skill checks, branches and effects in the validated
+  **Choices** and **On enter effects** JSON fields.
+- Use **Add node** to create a node. Dangling `goto`, `next`, job and item
+  references are reported in the project validation drawer.
 
-### …job
+Dice pool = attribute + skill (+2 when the named bonus gear is carried); each
+die is a d6 and 5–6 is a hit against the choice's `dc`. Options whose condition
+fails render disabled with the requirement shown rather than being hidden.
 
-1. Add the job to `packages/content/data/jobs.json`:
+Effect verbs shared by dialogue, jobs and pickups are: `setFlag`, `clearFlag`,
+`giveItem`, `takeItem`, `nuyen`, `karma`, `heal`, `damage`, `ammo`,
+`startJob`, `completeJob`, `failJob`, `completeObjective`, `unlock`, `spawn`,
+`toast` and `warp`.
 
-   ```json
-   { "id": "job_x", "title": "…", "payment": { "nuyen": 1200, "karma": 1 },
-     "objectives": [
-       { "id": "step1", "type": "talk", "target": "vex", "text": "Find Vex" },
-       { "id": "step2", "type": "kill", "archetype": "sec_drone", "count": 3,
-         "text": "Scrap the drones", "requires": ["step1"] }
-     ] }
-   ```
+### Jobs
 
-2. Hand it out from dialogue with `{ "startJob": "job_x" }`.
+- Open **Jobs** and select a job to see its objective graph.
+- Select an objective to edit its ID, player-facing text, type, prerequisites
+  and typed references to rooms, items or enemy archetypes.
+- Use **Add objective** to append a step. Optional objectives and less common
+  properties are available in **Advanced properties**.
 
-Objective types live in `src/quests/objectives.js`: `kill`, `collect`, `reach`,
-`talk`, `deliver`, `flag`, `hack`, `condition`. **Adding a type is one entry in
-that registry** — `JobManager` never changes. A job completes automatically when
-all non-`optional` objectives are done, unless it sets `manualComplete` and some
-dialogue calls `completeJob`.
+Supported objective types are `kill`, `collect`, `reach`, `talk`, `deliver`,
+`flag`, `hack` and `condition`. Jobs complete when all non-optional objectives
+are done unless `manualComplete` is set and dialogue completes the job.
 
-### …dialogue
+### Operations that still require source changes
 
-Add a graph to `packages/content/data/dialogues.json`. Options support gating and
-skill checks:
+The editor owns game content, not generated artwork or executable behavior.
+These operations remain code workflows:
 
-```json
-{ "text": "[Hacking] Spoof a badge.",
-  "check": { "attr": "logic", "skill": "hacking", "dc": 2, "bonus": "cyberdeck" },
-  "onSuccess": { "goto": "cracked", "do": [{ "unlock": "sec_door" }] },
-  "onFail":    { "goto": "burned" } }
-```
+- **New glyph:** update `tools/gen_font.py`, then run `npm run assets`.
+- **New tile artwork:** add the tile generator to `tools/gen_tileset.py`, add
+  its legend character to `packages/content/data/tiles.json`, then run
+  `npm run assets`. Collision comes from the generated tile metadata.
+- **New actor artwork:** add a spec to `tools/gen_actors.py`, then run
+  `npm run assets`.
+- **New AI brain:** implement it in `apps/game/src/entities/ai/index.js`.
+- **New objective type:** implement it in
+  `apps/game/src/quests/objectives.js`.
 
-Dice pool = attribute + skill (+2 if the `bonus` gear is carried); each die is a
-d6 and 5–6 is a hit, versus `dc`. Options whose `if` fails render greyed with the
-requirement shown rather than being hidden.
-
-Effect verbs (shared with jobs and pickups): `setFlag`, `clearFlag`, `giveItem`,
-`takeItem`, `nuyen`, `karma`, `heal`, `damage`, `ammo`, `startJob`,
-`completeJob`, `failJob`, `completeObjective`, `unlock`, `spawn`, `toast`,
-`warp`.
+The current editor can add entities, dialogue nodes and job objectives, but it
+does not yet create new top-level room, actor, item, dialogue-graph or job IDs.
+For those records, add the initial entry to the appropriate
+`packages/content/data/*.json` file, choose **Reload**, then continue editing it
+in Content Forge. Run `npm run validate:content` after any direct JSON change.
 
 ---
 
@@ -237,15 +261,17 @@ afterwards. A side job from the market vendor clears the rooftop drone nest.
 EventBus is a small hand-rolled emitter rather than `Phaser.Events.EventEmitter`
 precisely so the whole rules layer stays importable in Node.
 
-Coverage: the condition evaluator, effect verbs, dice-pool distribution,
-JobManager objective ordering/counting/completion/persistence, and a content
-validator that checks every room's dimensions and legend characters, every exit
-and door target, every spawn archetype and item, every dialogue link, and that
-all rooms are reachable from the start.
+Coverage includes the condition evaluator, effect verbs, dice-pool
+distribution, JobManager lifecycle and persistence, editor history and painting
+operations, atomic content persistence and rollback, and game/editor dependency
+isolation. The content validator checks room dimensions, tile characters,
+player and entity coordinates, exits, doors, archetypes, items, dialogue links,
+job objectives and reachability from each level's start room.
 
-For manual work in the browser, `src/dev/harness.js` (dev builds only) exposes
-`window.__h` with `step`, `run`, `walk`, `tap`, `rig`, `shot` and `state`.
-`h.shot('name.png')` writes a PNG to `.shots/` via a dev-server endpoint.
+For automated or console-driven game checks,
+`apps/game/src/dev/harness.js` (dev builds only) exposes `window.__h` with
+`step`, `run`, `walk`, `tap`, `rig`, `shot` and `state`.
+`h.shot('name.png')` writes a PNG to `.shots/` through the game dev server.
 
 > Note when scripting the harness: Phaser's TweenManager derives its delta from
 > `Date.now()`, so tween-gated behaviour (death fades, toasts) needs `h.run(ms)`,
