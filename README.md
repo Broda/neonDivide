@@ -74,8 +74,10 @@ src/
     JobManager.js      listens on the bus, advances objectives
     objectives.js      objective-type registry
   scenes/              Boot / World / Hud / Dialogue / Journal / GameOver
-  data/                tiles, items, actors, rooms, jobs, dialogue
-tests/                 headless node:test suite
+  data/                thin game adapters for shared canonical content
+apps/editor/            React + TypeScript local content editor
+packages/content/       canonical JSON, schemas, validation, persistence
+apps/game/tests/        headless game node:test suite
 ```
 
 ### Why the text is a bitmap font
@@ -98,7 +100,7 @@ For the same reason the game scales by **whole multiples only**
 Three design decisions carry most of the extensibility:
 
 1. **The generated tileset JSON is the single source of truth for collision.**
-   `tools/gen_tileset.py` emits `solid` per tile; the game reads it. Art and
+`tools/gen_tileset.py` emits `solid` per tile; the game reads it. Art and
    physics cannot drift apart, and tile ids may be reshuffled freely.
 2. **Rooms are ASCII art.** Editing a 20×15 grid of numbers by hand is
    unbearable; a room is two arrays of strings plus a shared legend.
@@ -128,12 +130,12 @@ change.
        glow(px, 8, 6, with_alpha(CYAN, 120), 6, TILE, TILE)
    ```
 
-2. Give it a legend character in `src/data/tiles.js`.
+2. Give it a legend character in `packages/content/data/tiles.json`.
 3. `npm run assets`. Collision follows from `solid` automatically.
 
 ### …room (screen)
 
-1. Copy any file in `src/data/rooms/level01/` as a template. A room is
+1. Add the room to `packages/content/data/rooms.json`. A room is
    `ground` + `decor`, each 15 strings of exactly 20 characters (`' '` = empty).
 2. **Match the wall tile to the direction it runs.** Masonry tiles come in
    pairs — `#`/`|` (street), `I`/`j` (interior), `L`/`(` (rooftop ledge). The
@@ -141,7 +143,7 @@ change.
    the second runs vertically for the left and right columns. Using a
    horizontal tile down a column reads as a stack of misplaced top-wall pieces.
    `C` (corrugated) already has vertical ridges and works in either run.
-3. Register it in `src/data/rooms/level01/index.js`.
+3. Add it to its level's `rooms` list in `packages/content/data/levels.json`.
 4. Add an `exits` entry on a neighbour pointing at it (`north`/`south`/`east`/
    `west`), or a `door` spawn with `to:`.
 5. `npm test` validates the dimensions, legend characters, exits and spawn
@@ -151,7 +153,7 @@ change.
 
 1. Add a spec to `SPECS` in `tools/gen_actors.py` (colours + feature flags; a
    palette swap is just another spec) and run `npm run assets`.
-2. Add an archetype to `ENEMIES` in `src/data/actors.js` — hp, speed, damage,
+2. Add an archetype to `enemies` in `packages/content/data/actors.json` — hp, speed, damage,
    `brain`, `drops`, `tags`.
 3. Spawn it from a room: `{ type: 'enemy', archetype: 'my_goon', x, y, brain,
    path: [[x1,y1],[x2,y2]] }`.
@@ -161,8 +163,7 @@ differs; a brain is one object with a `think(enemy, player, dt)` method.
 
 ### …job
 
-1. Drop a JSON file into `src/data/jobs/` and import it in that folder's
-   `index.js`:
+1. Add the job to `packages/content/data/jobs.json`:
 
    ```json
    { "id": "job_x", "title": "…", "payment": { "nuyen": 1200, "karma": 1 },
@@ -183,7 +184,7 @@ dialogue calls `completeJob`.
 
 ### …dialogue
 
-Add a graph to any file in `src/data/dialogue/`. Options support gating and
+Add a graph to `packages/content/data/dialogues.json`. Options support gating and
 skill checks:
 
 ```json

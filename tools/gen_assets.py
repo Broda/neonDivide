@@ -3,7 +3,7 @@
     python tools/gen_assets.py
 
 Writes every PNG plus the metadata JSON the game reads at runtime into
-public/assets/. Output is deterministic: same source, same bytes.
+apps/game/public/assets/. Output is deterministic: same source, same bytes.
 """
 
 import json
@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
-OUT = ROOT.parent / 'public' / 'assets'
+OUT = ROOT.parent / 'apps' / 'game' / 'public' / 'assets'
 
 import gen_actors  # noqa: E402
 import gen_font  # noqa: E402

@@ -1,0 +1,17 @@
+{
+  "level01": {
+    "id": "level01",
+    "name": "Kagemori Sprawl",
+    "start": "plaza",
+    "rooms": [
+      "plaza",
+      "alley",
+      "market",
+      "strip",
+      "backlot",
+      "lobby",
+      "server",
+      "rooftop"
+    ]
+  }
+}

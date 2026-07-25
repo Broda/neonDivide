@@ -1,20 +1,23 @@
 {
-  "name": "neon-divide",
-  "version": "0.1.0",
+  "name": "neon-divide-workspace",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Neon Divide - a Zelda-style cyberpunk adventure with Shadowrun-flavoured jobs",
+  "description": "Neon Divide game, content contracts, and isolated authoring editor",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "assets": "python tools/gen_assets.py",
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "test": "node --test tests/*.test.js"
-  },
-  "dependencies": {
-    "phaser": "^4.2.1"
-  },
-  "devDependencies": {
-    "vite": "^8.1.5"
+    "dev": "npm run dev:game",
+    "dev:game": "npm run dev --workspace @neon-divide/game",
+    "dev:editor": "npm run dev --workspace @neon-divide/editor",
+    "build": "npm run build:game && npm run build:editor",
+    "build:game": "npm run build --workspace @neon-divide/game",
+    "build:editor": "npm run build --workspace @neon-divide/editor",
+    "test": "npm run test --workspace @neon-divide/content && npm run test --workspace @neon-divide/game && npm run test --workspace @neon-divide/editor && node tools/check-isolation.js",
+    "validate:content": "npm run validate --workspace @neon-divide/content",
+    "check:isolation": "node tools/check-isolation.js"
   }
 }

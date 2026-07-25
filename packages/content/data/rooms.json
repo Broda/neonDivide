@@ -1,0 +1,887 @@
+{
+  "plaza": {
+    "id": "plaza",
+    "name": "Kagemori Plaza",
+    "spawn": [
+      10,
+      9
+    ],
+    "ground": [
+      "____________________",
+      "____________________",
+      "__................__",
+      "__.......u........__",
+      "__................__",
+      "__......,.........__",
+      "__................__",
+      "__................__",
+      "__.........U......__",
+      "__................__",
+      "__......o.........__",
+      "__................__",
+      "__................__",
+      "____________________",
+      "____________________"
+    ],
+    "decor": [
+      "#W#WN#W##  #W#N#W#W#",
+      "|  12             V|",
+      "|  34              |",
+      "|                  |",
+      "|      T           |",
+      "|          []      |",
+      "|                  |",
+      "|                   ",
+      "|                   ",
+      "|                  |",
+      "|     P            |",
+      "|                  |",
+      "|   K K            |",
+      "|                  |",
+      "#W#W#N#W#  #W#N#W#W#"
+    ],
+    "exits": {
+      "north": "alley",
+      "east": "market",
+      "south": "strip"
+    },
+    "spawns": [
+      {
+        "type": "npc",
+        "archetype": "fixer",
+        "id": "kaz",
+        "x": 5,
+        "y": 8,
+        "facing": "right",
+        "dialogueRules": [
+          {
+            "if": {
+              "flag": "wetwire_resolved"
+            },
+            "dialogue": "kaz_after"
+          },
+          {
+            "if": {
+              "item": "wetwire_case"
+            },
+            "dialogue": "kaz_handover"
+          },
+          {
+            "if": {
+              "job": "job_wetwire",
+              "is": "active"
+            },
+            "dialogue": "kaz_busy"
+          },
+          {
+            "if": true,
+            "dialogue": "kaz_intro"
+          }
+        ]
+      },
+      {
+        "type": "npc",
+        "archetype": "civ_a",
+        "id": "plaza_civ",
+        "x": 15,
+        "y": 11,
+        "wander": true,
+        "dialogue": "civ_plaza"
+      },
+      {
+        "type": "pickup",
+        "item": "ammo",
+        "amount": 1,
+        "x": 17,
+        "y": 3,
+        "once": "plaza_ammo"
+      },
+      {
+        "type": "sign",
+        "x": 3,
+        "y": 2,
+        "id": "plaza_billboard",
+        "text": "FERRISTECH — \"YOUR BODY, PERFECTED.\" (someone has tagged it)"
+      }
+    ]
+  },
+  "alley": {
+    "id": "alley",
+    "name": "Sodium Alley",
+    "spawn": [
+      10,
+      12
+    ],
+    "ground": [
+      "....................",
+      "....................",
+      "....u...............",
+      "....................",
+      "......gggg..........",
+      "....................",
+      "..........U.........",
+      "....................",
+      "....................",
+      ".....,..............",
+      "....................",
+      "..........u.........",
+      "....................",
+      "....................",
+      "...................."
+    ],
+    "decor": [
+      "CCCCCCCCCCCCCCCCCCCC",
+      "C   []           - C",
+      "C                  C",
+      "C        b         C",
+      "C  !               C",
+      "C                  C",
+      "C            K     C",
+      "C                   ",
+      "C                   ",
+      "C                  C",
+      "C   B              C",
+      "C                  C",
+      "C          []      C",
+      "C                  C",
+      "CCCCCCCCC  CCCCCCCCC"
+    ],
+    "exits": {
+      "south": "plaza",
+      "east": "backlot"
+    },
+    "spawns": [
+      {
+        "type": "npc",
+        "archetype": "decker",
+        "id": "vex",
+        "x": 4,
+        "y": 6,
+        "facing": "down",
+        "dialogueRules": [
+          {
+            "if": {
+              "item": "cyberdeck"
+            },
+            "dialogue": "vex_after"
+          },
+          {
+            "if": true,
+            "dialogue": "vex_intro"
+          }
+        ]
+      },
+      {
+        "type": "enemy",
+        "archetype": "ganger_blade",
+        "id": "alley_g1",
+        "x": 14,
+        "y": 10,
+        "brain": "patrol",
+        "path": [
+          [
+            14,
+            10
+          ],
+          [
+            14,
+            4
+          ],
+          [
+            17,
+            4
+          ]
+        ]
+      },
+      {
+        "type": "pickup",
+        "item": "medkit",
+        "amount": 1,
+        "x": 3,
+        "y": 12,
+        "once": "alley_medkit"
+      }
+    ]
+  },
+  "market": {
+    "id": "market",
+    "name": "Neon Market",
+    "spawn": [
+      3,
+      7
+    ],
+    "entries": {
+      "from_roof": [
+        16,
+        2
+      ]
+    },
+    "ground": [
+      "____________________",
+      "__________________c_",
+      "__................__",
+      "__................__",
+      "__.....u..........__",
+      "__................__",
+      "__................__",
+      "__................__",
+      "__................__",
+      "__......,.........__",
+      "__................__",
+      "__.........U......__",
+      "__................__",
+      "____________________",
+      "____________________"
+    ],
+    "decor": [
+      "#N56#N#N#N#N#56#D#N#",
+      "|                  |",
+      "|  V V         H   |",
+      "|                  |",
+      "|     P            |",
+      "|         K K      |",
+      "|                  |",
+      "                   |",
+      "                   |",
+      "|                  |",
+      "|   []        b    |",
+      "|                  |",
+      "|        P         |",
+      "|                  |",
+      "#N#W#N#W#N#W#N#W#N##"
+    ],
+    "exits": {
+      "west": "plaza"
+    },
+    "spawns": [
+      {
+        "type": "npc",
+        "archetype": "civ_b",
+        "id": "vendor",
+        "x": 4,
+        "y": 3,
+        "facing": "down",
+        "dialogueRules": [
+          {
+            "if": {
+              "job": "job_dronenest",
+              "is": "completed"
+            },
+            "dialogue": "vendor_after"
+          },
+          {
+            "if": {
+              "job": "job_dronenest",
+              "is": "active"
+            },
+            "dialogue": "vendor_busy"
+          },
+          {
+            "if": true,
+            "dialogue": "vendor_intro"
+          }
+        ]
+      },
+      {
+        "type": "npc",
+        "archetype": "ganger_boss",
+        "id": "rival",
+        "name": "Sable",
+        "x": 15,
+        "y": 11,
+        "facing": "left",
+        "if": {
+          "item": "wetwire_case"
+        },
+        "dialogue": "rival_offer"
+      },
+      {
+        "type": "door",
+        "id": "roof_door",
+        "x": 16,
+        "y": 0,
+        "to": "rooftop",
+        "entry": "from_market",
+        "openTile": "door_open"
+      },
+      {
+        "type": "pickup",
+        "item": "nuyen",
+        "amount": 120,
+        "x": 17,
+        "y": 5,
+        "once": "market_cash"
+      }
+    ]
+  },
+  "strip": {
+    "id": "strip",
+    "name": "The Strip",
+    "spawn": [
+      10,
+      2
+    ],
+    "ground": [
+      "....................",
+      ".......:............",
+      ".......:............",
+      ".......:.....u......",
+      ".......:............",
+      "=======:============",
+      ".......:............",
+      ".......:............",
+      "..,....:............",
+      ".......:............",
+      ".......:......o.....",
+      ".......:............",
+      ".......:........U...",
+      "....................",
+      "____________________"
+    ],
+    "decor": [
+      "#########  #########",
+      "|                  |",
+      "|  x x x           |",
+      "|                  |",
+      "|           K      |",
+      "|                  |",
+      "|      T           |",
+      "|                  |",
+      "|            []    |",
+      "|                  |",
+      "|   b b            |",
+      "|                  |",
+      "|          P       |",
+      "|                  |",
+      "#N#W#N#W#N#W#N#W#N##"
+    ],
+    "exits": {
+      "north": "plaza"
+    },
+    "spawns": [
+      {
+        "type": "enemy",
+        "archetype": "ganger_gun",
+        "id": "strip_g1",
+        "x": 15,
+        "y": 4,
+        "brain": "shooter",
+        "path": [
+          [
+            15,
+            4
+          ],
+          [
+            15,
+            10
+          ]
+        ]
+      },
+      {
+        "type": "enemy",
+        "archetype": "ganger_blade",
+        "id": "strip_g2",
+        "x": 5,
+        "y": 9,
+        "brain": "patrol",
+        "path": [
+          [
+            5,
+            9
+          ],
+          [
+            12,
+            9
+          ],
+          [
+            12,
+            12
+          ]
+        ]
+      },
+      {
+        "type": "pickup",
+        "item": "stimpack",
+        "amount": 1,
+        "x": 17,
+        "y": 2,
+        "once": "strip_stim"
+      },
+      {
+        "type": "pickup",
+        "item": "ammo",
+        "amount": 1,
+        "x": 3,
+        "y": 12,
+        "once": "strip_ammo"
+      }
+    ]
+  },
+  "backlot": {
+    "id": "backlot",
+    "name": "Ferristech Backlot",
+    "spawn": [
+      2,
+      7
+    ],
+    "entries": {
+      "from_lobby": [
+        9,
+        2
+      ]
+    },
+    "ground": [
+      "vvvvvvvvvvvvvvvvvvvv",
+      "vvvvvvvvv__vvvvvvvvv",
+      "vv________________vv",
+      "vv________________vv",
+      "vv_____vvvv_______vv",
+      "vv________________vv",
+      "__________________vv",
+      "__________________vv",
+      "vv________________vv",
+      "vv_____~__________vv",
+      "vv________________vv",
+      "vv________________vv",
+      "vv_____vvvv_______vv",
+      "vv________________vv",
+      "vvvvvvvvvvvvvvvvvvvv"
+    ],
+    "decor": [
+      "####x####Z#R####x###",
+      "|                  |",
+      "|  A            A  |",
+      "|                  |",
+      "|      k    k      |",
+      "|                  |",
+      "                   |",
+      "                   |",
+      "|                  |",
+      "|   K              |",
+      "|                  |",
+      "|        t         |",
+      "|                  |",
+      "|   [] B           |",
+      "####################"
+    ],
+    "exits": {
+      "west": "alley"
+    },
+    "spawns": [
+      {
+        "type": "door",
+        "id": "sec_door",
+        "x": 9,
+        "y": 0,
+        "to": "lobby",
+        "entry": "from_backlot",
+        "lock": {
+          "item": "keycard_red"
+        },
+        "lockedDialogue": "sec_door_locked",
+        "openTile": "sec_door_open"
+      },
+      {
+        "type": "terminal",
+        "id": "door_reader",
+        "x": 11,
+        "y": 0,
+        "dialogue": "reader_hack"
+      },
+      {
+        "type": "npc",
+        "archetype": "guard",
+        "id": "gate_guard",
+        "name": "Gate Guard",
+        "x": 7,
+        "y": 2,
+        "facing": "down",
+        "dialogueRules": [
+          {
+            "if": {
+              "flag": "unlocked:sec_door"
+            },
+            "dialogue": "guard_after"
+          },
+          {
+            "if": true,
+            "dialogue": "guard_gate"
+          }
+        ],
+        "if": {
+          "not": {
+            "flag": "guard_dismissed"
+          }
+        }
+      },
+      {
+        "type": "enemy",
+        "archetype": "ganger_boss",
+        "id": "krait",
+        "x": 14,
+        "y": 9,
+        "brain": "patrol",
+        "path": [
+          [
+            14,
+            9
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            5,
+            12
+          ],
+          [
+            14,
+            12
+          ]
+        ]
+      },
+      {
+        "type": "enemy",
+        "archetype": "ganger_gun",
+        "id": "backlot_g1",
+        "x": 16,
+        "y": 4,
+        "brain": "shooter",
+        "path": [
+          [
+            16,
+            4
+          ],
+          [
+            16,
+            11
+          ]
+        ]
+      },
+      {
+        "type": "terminal",
+        "id": "backlot_terminal",
+        "x": 9,
+        "y": 11,
+        "dialogue": "terminal_backlot"
+      }
+    ],
+    "reinforcements": [
+      {
+        "archetype": "guard",
+        "brain": "shooter",
+        "x": 10,
+        "y": 1
+      },
+      {
+        "archetype": "ganger_gun",
+        "brain": "shooter",
+        "x": 2,
+        "y": 7
+      }
+    ]
+  },
+  "lobby": {
+    "id": "lobby",
+    "name": "Ferristech Lobby",
+    "spawn": [
+      9,
+      12
+    ],
+    "entries": {
+      "from_backlot": [
+        9,
+        12
+      ]
+    },
+    "ground": [
+      "ffffffffffffffffffff",
+      "fppppppppppppppppppf",
+      "fpffffffffffffffffpf",
+      "fpffrrrrrrffffffffpf",
+      "fpffrrrrrrffffffffpf",
+      "fpffffffffffffffffpf",
+      "fpffffffffffffffffpf",
+      "nnffffffffffffffffpf",
+      "nnffffffffffffffffpf",
+      "fpffffffffffffffffpf",
+      "fpffffffffffffffffpf",
+      "fpffffffffffffffffpf",
+      "fppppppppppppppppppf",
+      "ffffffnnnnnnffffffff",
+      "ffffffffffffffffffff"
+    ],
+    "decor": [
+      "IIIIIIIIIIIIIIIIIIII",
+      "j                  j",
+      "j  S S S           j",
+      "j                  j",
+      "j           H      j",
+      "j                  j",
+      "j        t         j",
+      "j                   ",
+      "j                   ",
+      "j                  j",
+      "j   K              j",
+      "j                  j",
+      "j                  j",
+      "j                  j",
+      "IIIIIIIII  IIIIIIIII"
+    ],
+    "exits": {
+      "south": "backlot",
+      "east": "server"
+    },
+    "spawns": [
+      {
+        "type": "enemy",
+        "archetype": "guard",
+        "id": "lobby_guard1",
+        "x": 6,
+        "y": 4,
+        "brain": "shooter",
+        "path": [
+          [
+            6,
+            4
+          ],
+          [
+            14,
+            4
+          ],
+          [
+            14,
+            9
+          ],
+          [
+            6,
+            9
+          ]
+        ]
+      },
+      {
+        "type": "enemy",
+        "archetype": "sec_drone",
+        "id": "lobby_drone",
+        "x": 15,
+        "y": 11,
+        "brain": "drone"
+      },
+      {
+        "type": "terminal",
+        "id": "lobby_terminal",
+        "x": 9,
+        "y": 6,
+        "dialogue": "terminal_lobby"
+      },
+      {
+        "type": "pickup",
+        "item": "medkit",
+        "amount": 1,
+        "x": 4,
+        "y": 10,
+        "once": "lobby_medkit"
+      }
+    ],
+    "reinforcements": [
+      {
+        "archetype": "guard",
+        "brain": "shooter",
+        "x": 17,
+        "y": 7
+      }
+    ]
+  },
+  "server": {
+    "id": "server",
+    "name": "Cold Room",
+    "spawn": [
+      2,
+      7
+    ],
+    "ground": [
+      "pppppppppppppppppppp",
+      "pnnnnnnnnnnnnnnnnnnp",
+      "pppppppppppppppppppp",
+      "pnnnnnnnnnnnnnnnnnnp",
+      "pppppppppppppppppppp",
+      "pppppppppppppppppppp",
+      "ppppppppppppppppppnp",
+      "ppppppppppppppppppnp",
+      "ppppppppppppppppppnp",
+      "pppppppppppppppppppp",
+      "pppppppppppppppppppp",
+      "pnnnnnnnnnnnnnnnnnnp",
+      "pppppppppppppppppppp",
+      "pppppppppppppppppppp",
+      "pppppppppppppppppppp"
+    ],
+    "decor": [
+      "IIIIIIIIIIIIIIIIIIII",
+      "j S S S S S S S    j",
+      "j                  j",
+      "j S S S S S S S    j",
+      "j                  j",
+      "j                  j",
+      "j                  j",
+      "                   j",
+      "                   j",
+      "j                  j",
+      "j   S S S          j",
+      "j                  j",
+      "j         t        j",
+      "j                  j",
+      "IIIIIIIIIIIIIIIIIIII"
+    ],
+    "exits": {
+      "west": "lobby"
+    },
+    "spawns": [
+      {
+        "type": "pickup",
+        "item": "wetwire_case",
+        "amount": 1,
+        "x": 16,
+        "y": 7,
+        "once": "the_case"
+      },
+      {
+        "type": "enemy",
+        "archetype": "sec_drone",
+        "id": "server_drone1",
+        "x": 12,
+        "y": 5,
+        "brain": "drone"
+      },
+      {
+        "type": "enemy",
+        "archetype": "sec_drone",
+        "id": "server_drone2",
+        "x": 8,
+        "y": 9,
+        "brain": "drone"
+      },
+      {
+        "type": "terminal",
+        "id": "server_terminal",
+        "x": 10,
+        "y": 12,
+        "dialogue": "terminal_server"
+      }
+    ],
+    "reinforcements": [
+      {
+        "archetype": "sec_drone",
+        "brain": "drone",
+        "x": 18,
+        "y": 2
+      },
+      {
+        "archetype": "guard",
+        "brain": "shooter",
+        "x": 2,
+        "y": 12
+      }
+    ]
+  },
+  "rooftop": {
+    "id": "rooftop",
+    "name": "Kagemori Rooftops",
+    "spawn": [
+      10,
+      12
+    ],
+    "entries": {
+      "from_market": [
+        10,
+        12
+      ]
+    },
+    "ground": [
+      "vvvvvvvvvvvvvvvvvvvv",
+      "vvvvvvvvvvvvvvvvvvvv",
+      "vvvvvvvvvvvvvvvvvvvv",
+      "vvvvvvggggvvvvvvvvvv",
+      "vvvvvvvvvvvvvvvvvvvv",
+      "vvvvvvvvvvvvvvvvvvvv",
+      "vvvvvvvvvvvvvvvvvvvv",
+      "vvvvvvvvvvvvggggvvvv",
+      "vvvvvvvvvvvvvvvvvvvv",
+      "vvvvvvvvvvvvvvvvvvvv",
+      "vvvvvvvvvvvvvvvvvvvv",
+      "vvvvggggvvvvvvvvvvvv",
+      "vvvvvvvvvvvvvvvvvvvv",
+      "vvvvvvvvvvvvvvvvvvvv",
+      "vvvvvvvvvvvvvvvvvvvv"
+    ],
+    "decor": [
+      "LLLLLLLLLLLLLLLLLLLL",
+      "(                  (",
+      "(   A        A     (",
+      "(                  (",
+      "(         Y        (",
+      "(                  (",
+      "(    A             (",
+      "(                  (",
+      "(           A      (",
+      "(                  (",
+      "(                  (",
+      "(    Y             (",
+      "(                  (",
+      "(                  (",
+      "LLLLLLLLLLDLLLLLLLLL"
+    ],
+    "exits": {},
+    "spawns": [
+      {
+        "type": "door",
+        "id": "roof_exit",
+        "x": 10,
+        "y": 14,
+        "to": "market",
+        "entry": "from_roof",
+        "openTile": "door_open"
+      },
+      {
+        "type": "enemy",
+        "archetype": "sec_drone",
+        "id": "roof_drone1",
+        "x": 5,
+        "y": 4,
+        "brain": "drone"
+      },
+      {
+        "type": "enemy",
+        "archetype": "sec_drone",
+        "id": "roof_drone2",
+        "x": 14,
+        "y": 6,
+        "brain": "drone"
+      },
+      {
+        "type": "enemy",
+        "archetype": "sec_drone",
+        "id": "roof_drone3",
+        "x": 9,
+        "y": 9,
+        "brain": "drone"
+      },
+      {
+        "type": "pickup",
+        "item": "ammo",
+        "amount": 1,
+        "x": 2,
+        "y": 12,
+        "once": "roof_ammo"
+      },
+      {
+        "type": "pickup",
+        "item": "credstick",
+        "amount": 1,
+        "x": 17,
+        "y": 2,
+        "once": "roof_credstick"
+      }
+    ]
+  }
+}
