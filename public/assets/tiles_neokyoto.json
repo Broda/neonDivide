@@ -1,0 +1,521 @@
+{
+  "image": "tiles_neokyoto.png",
+  "tileWidth": 16,
+  "tileHeight": 16,
+  "columns": 8,
+  "count": 60,
+  "tiles": [
+    {
+      "id": 0,
+      "name": "asphalt",
+      "solid": false,
+      "tags": [
+        "floor"
+      ]
+    },
+    {
+      "id": 1,
+      "name": "asphalt_crack",
+      "solid": false,
+      "tags": [
+        "floor"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "asphalt_drain",
+      "solid": false,
+      "tags": [
+        "floor"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "road_line",
+      "solid": false,
+      "tags": [
+        "floor"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "crosswalk",
+      "solid": false,
+      "tags": [
+        "floor"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "puddle_cyan",
+      "solid": false,
+      "tags": [
+        "floor",
+        "wet"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "puddle_magenta",
+      "solid": false,
+      "tags": [
+        "floor",
+        "wet"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "sidewalk",
+      "solid": false,
+      "tags": [
+        "floor"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "sidewalk_curb",
+      "solid": false,
+      "tags": [
+        "floor"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "grate",
+      "solid": false,
+      "tags": [
+        "floor"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "floor_tile",
+      "solid": false,
+      "tags": [
+        "floor",
+        "interior"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "floor_panel",
+      "solid": false,
+      "tags": [
+        "floor",
+        "interior"
+      ]
+    },
+    {
+      "id": 12,
+      "name": "floor_neon",
+      "solid": false,
+      "tags": [
+        "floor",
+        "interior"
+      ]
+    },
+    {
+      "id": 13,
+      "name": "gravel",
+      "solid": false,
+      "tags": [
+        "floor",
+        "roof"
+      ]
+    },
+    {
+      "id": 14,
+      "name": "rug",
+      "solid": false,
+      "tags": [
+        "floor",
+        "interior"
+      ]
+    },
+    {
+      "id": 15,
+      "name": "sludge",
+      "solid": false,
+      "tags": [
+        "floor",
+        "hazard"
+      ]
+    },
+    {
+      "id": 16,
+      "name": "wall",
+      "solid": true,
+      "tags": [
+        "wall"
+      ]
+    },
+    {
+      "id": 17,
+      "name": "wall_side",
+      "solid": true,
+      "tags": [
+        "wall",
+        "vertical"
+      ]
+    },
+    {
+      "id": 18,
+      "name": "wall_interior_side",
+      "solid": true,
+      "tags": [
+        "wall",
+        "interior",
+        "vertical"
+      ]
+    },
+    {
+      "id": 19,
+      "name": "ledge_side",
+      "solid": true,
+      "tags": [
+        "wall",
+        "roof",
+        "vertical"
+      ]
+    },
+    {
+      "id": 20,
+      "name": "wall_top",
+      "solid": true,
+      "tags": [
+        "wall"
+      ]
+    },
+    {
+      "id": 21,
+      "name": "wall_corrugated",
+      "solid": true,
+      "tags": [
+        "wall"
+      ]
+    },
+    {
+      "id": 22,
+      "name": "wall_window_lit",
+      "solid": true,
+      "tags": [
+        "wall"
+      ]
+    },
+    {
+      "id": 23,
+      "name": "wall_window_dark",
+      "solid": true,
+      "tags": [
+        "wall"
+      ]
+    },
+    {
+      "id": 24,
+      "name": "wall_neon",
+      "solid": true,
+      "tags": [
+        "wall"
+      ]
+    },
+    {
+      "id": 25,
+      "name": "wall_interior",
+      "solid": true,
+      "tags": [
+        "wall",
+        "interior"
+      ]
+    },
+    {
+      "id": 26,
+      "name": "fence",
+      "solid": true,
+      "tags": [
+        "wall",
+        "seethrough"
+      ]
+    },
+    {
+      "id": 27,
+      "name": "fence_post",
+      "solid": true,
+      "tags": [
+        "wall"
+      ]
+    },
+    {
+      "id": 28,
+      "name": "pipe_v",
+      "solid": true,
+      "tags": [
+        "prop"
+      ]
+    },
+    {
+      "id": 29,
+      "name": "pipe_h",
+      "solid": true,
+      "tags": [
+        "prop"
+      ]
+    },
+    {
+      "id": 30,
+      "name": "ledge",
+      "solid": true,
+      "tags": [
+        "wall",
+        "roof"
+      ]
+    },
+    {
+      "id": 31,
+      "name": "crate",
+      "solid": true,
+      "tags": [
+        "prop"
+      ]
+    },
+    {
+      "id": 32,
+      "name": "crate_tech",
+      "solid": true,
+      "tags": [
+        "prop"
+      ]
+    },
+    {
+      "id": 33,
+      "name": "dumpster_l",
+      "solid": true,
+      "tags": [
+        "prop"
+      ]
+    },
+    {
+      "id": 34,
+      "name": "dumpster_r",
+      "solid": true,
+      "tags": [
+        "prop"
+      ]
+    },
+    {
+      "id": 35,
+      "name": "barrel",
+      "solid": true,
+      "tags": [
+        "prop"
+      ]
+    },
+    {
+      "id": 36,
+      "name": "barrel_toxic",
+      "solid": true,
+      "tags": [
+        "prop"
+      ]
+    },
+    {
+      "id": 37,
+      "name": "vending",
+      "solid": true,
+      "tags": [
+        "prop"
+      ]
+    },
+    {
+      "id": 38,
+      "name": "ac_unit",
+      "solid": true,
+      "tags": [
+        "prop",
+        "roof"
+      ]
+    },
+    {
+      "id": 39,
+      "name": "server_rack",
+      "solid": true,
+      "tags": [
+        "prop",
+        "interior"
+      ]
+    },
+    {
+      "id": 40,
+      "name": "bench",
+      "solid": true,
+      "tags": [
+        "prop"
+      ]
+    },
+    {
+      "id": 41,
+      "name": "planter",
+      "solid": true,
+      "tags": [
+        "prop"
+      ]
+    },
+    {
+      "id": 42,
+      "name": "streetlight",
+      "solid": true,
+      "tags": [
+        "prop"
+      ]
+    },
+    {
+      "id": 43,
+      "name": "antenna",
+      "solid": true,
+      "tags": [
+        "prop",
+        "roof"
+      ]
+    },
+    {
+      "id": 44,
+      "name": "billboard_tl",
+      "solid": true,
+      "tags": [
+        "wall",
+        "sign"
+      ]
+    },
+    {
+      "id": 45,
+      "name": "billboard_tr",
+      "solid": true,
+      "tags": [
+        "wall",
+        "sign"
+      ]
+    },
+    {
+      "id": 46,
+      "name": "billboard_bl",
+      "solid": true,
+      "tags": [
+        "wall",
+        "sign"
+      ]
+    },
+    {
+      "id": 47,
+      "name": "billboard_br",
+      "solid": true,
+      "tags": [
+        "wall",
+        "sign"
+      ]
+    },
+    {
+      "id": 48,
+      "name": "neon_sign_l",
+      "solid": true,
+      "tags": [
+        "wall",
+        "sign"
+      ]
+    },
+    {
+      "id": 49,
+      "name": "neon_sign_r",
+      "solid": true,
+      "tags": [
+        "wall",
+        "sign"
+      ]
+    },
+    {
+      "id": 50,
+      "name": "door",
+      "solid": true,
+      "tags": [
+        "door"
+      ]
+    },
+    {
+      "id": 51,
+      "name": "door_open",
+      "solid": false,
+      "tags": [
+        "door",
+        "floor"
+      ]
+    },
+    {
+      "id": 52,
+      "name": "sec_door",
+      "solid": true,
+      "tags": [
+        "door",
+        "locked"
+      ]
+    },
+    {
+      "id": 53,
+      "name": "sec_door_open",
+      "solid": false,
+      "tags": [
+        "door",
+        "floor"
+      ]
+    },
+    {
+      "id": 54,
+      "name": "terminal",
+      "solid": true,
+      "tags": [
+        "prop",
+        "interact"
+      ]
+    },
+    {
+      "id": 55,
+      "name": "terminal_dead",
+      "solid": true,
+      "tags": [
+        "prop"
+      ]
+    },
+    {
+      "id": 56,
+      "name": "reader",
+      "solid": true,
+      "tags": [
+        "prop",
+        "interact"
+      ]
+    },
+    {
+      "id": 57,
+      "name": "stairs_up",
+      "solid": false,
+      "tags": [
+        "floor",
+        "stairs"
+      ]
+    },
+    {
+      "id": 58,
+      "name": "stairs_down",
+      "solid": false,
+      "tags": [
+        "floor",
+        "stairs"
+      ]
+    },
+    {
+      "id": 59,
+      "name": "void",
+      "solid": true,
+      "tags": [
+        "wall"
+      ]
+    }
+  ]
+}

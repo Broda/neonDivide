@@ -1,0 +1,205 @@
+{
+  "guard_gate": {
+    "id": "guard_gate",
+    "speaker": "Gate Guard",
+    "portrait": "guard",
+    "start": "greet",
+    "nodes": {
+      "greet": {
+        "text": [
+          "Lot's restricted. Badge or leave.",
+          "(He has been standing here a long time.)"
+        ],
+        "choices": [
+          {
+            "text": "[Etiquette] Rough shift? I heard they cut the dental.",
+            "check": { "attr": "charisma", "skill": "etiquette", "dc": 2, "bonus": "credstick" },
+            "onSuccess": { "goto": "commiserate" },
+            "onFail": { "goto": "rebuffed" }
+          },
+          {
+            "text": "[500¥] Buy yourself a better shift.",
+            "if": { "nuyen": 500 },
+            "goto": "bribed",
+            "do": [{ "nuyen": -500 }]
+          },
+          {
+            "text": "(Show the red keycard.)",
+            "if": { "item": "keycard_red" },
+            "goto": "badged"
+          },
+          { "text": "My mistake.", "end": true }
+        ]
+      },
+      "commiserate": {
+        "text": [
+          "...They cut the dental in March. Nobody outside knows that.",
+          "You're not with corporate.",
+          "Look — I'm going for a smoke. Door's on a ten second cycle."
+        ],
+        "onEnter": [
+          { "unlock": "sec_door" },
+          { "setFlag": "guard_dismissed" },
+          { "karma": 1 },
+          { "toast": "The guard wanders off." }
+        ],
+        "choices": [{ "text": "Enjoy the smoke.", "end": true }]
+      },
+      "rebuffed": {
+        "text": [
+          "Save it. Everyone's got a sad story and I've got a badge reader.",
+          "Move along."
+        ],
+        "choices": [
+          { "text": "Worth a try.", "end": true },
+          {
+            "text": "[500¥] Then let's talk numbers.",
+            "if": { "nuyen": 500 },
+            "goto": "bribed",
+            "do": [{ "nuyen": -500 }]
+          }
+        ]
+      },
+      "bribed": {
+        "text": ["...I never saw you. Door's open. Don't come back this way."],
+        "onEnter": [
+          { "unlock": "sec_door" },
+          { "setFlag": "guard_dismissed" },
+          { "toast": "The guard pockets the cash and walks." }
+        ],
+        "choices": [{ "text": "Wouldn't dream of it.", "end": true }]
+      },
+      "badged": {
+        "text": ["Red badge. Maintenance. Fine — you're somebody else's problem.", "(He steps aside.)"],
+        "onEnter": [{ "setFlag": "guard_dismissed" }],
+        "choices": [{ "text": "Appreciated.", "end": true }]
+      }
+    }
+  },
+
+  "guard_after": {
+    "id": "guard_after",
+    "speaker": "Gate Guard",
+    "portrait": "guard",
+    "start": "greet",
+    "nodes": {
+      "greet": {
+        "text": ["Door's already open. Not my shift, not my problem."],
+        "choices": [{ "text": "Good man.", "end": true }]
+      }
+    }
+  },
+
+  "reader_hack": {
+    "id": "reader_hack",
+    "speaker": "Renraku Reader",
+    "portrait": "runner",
+    "start": "greet",
+    "nodes": {
+      "greet": {
+        "text": [
+          "A badge reader, amber standby light blinking.",
+          "The casing has been jimmied before and welded shut again."
+        ],
+        "choices": [
+          {
+            "text": "[Hacking] Spoof a maintenance badge.",
+            "check": { "attr": "logic", "skill": "hacking", "dc": 2, "bonus": "cyberdeck" },
+            "onSuccess": { "goto": "cracked" },
+            "onFail": { "goto": "burned" }
+          },
+          {
+            "text": "(Swipe the red keycard.)",
+            "if": { "item": "keycard_red" },
+            "goto": "swiped"
+          },
+          { "text": "Leave it.", "end": true }
+        ]
+      },
+      "cracked": {
+        "text": [
+          "The amber light goes green. Somewhere a log entry is born",
+          "attributing this to a maintenance tech who retired in 2049.",
+          "The door unseals."
+        ],
+        "onEnter": [
+          { "unlock": "sec_door" },
+          { "karma": 1 },
+          { "toast": "Security door unsealed." }
+        ],
+        "choices": [{ "text": "In.", "end": true }]
+      },
+      "burned": {
+        "text": [
+          "The reader chirps once and locks you out for the cycle.",
+          "Somewhere, a counter increments.",
+          "Try a different door. Or a different approach entirely."
+        ],
+        "onEnter": [{ "setFlag": "reader_alerted" }],
+        "choices": [{ "text": "Damn.", "end": true }]
+      },
+      "swiped": {
+        "text": ["Red badge reads clean. The door unseals."],
+        "onEnter": [{ "unlock": "sec_door" }],
+        "choices": [{ "text": "In.", "end": true }]
+      }
+    }
+  },
+
+  "sec_door_locked": {
+    "id": "sec_door_locked",
+    "speaker": "Security Door",
+    "portrait": "runner",
+    "start": "greet",
+    "nodes": {
+      "greet": {
+        "text": [
+          "Sealed. A red status light stares back at you.",
+          "There's a badge reader mounted beside it, and a guard on the gate.",
+          "Three ways through a door: the lock, the badge, or the man."
+        ],
+        "choices": [{ "text": "(Step back.)", "end": true }]
+      }
+    }
+  },
+
+  "terminal_backlot": {
+    "id": "terminal_backlot",
+    "speaker": "Yard Terminal",
+    "portrait": "runner",
+    "start": "greet",
+    "nodes": {
+      "greet": {
+        "text": [
+          "SHIPPING MANIFEST — FERRISTECH KAGEMORI",
+          "  COLD ROOM 2F: 1x SEALED NEURAL INTERFACE (DO NOT SCAN)",
+          "  NOTE: reader on gate 4 flagged for replacement since Q2."
+        ],
+        "choices": [
+          {
+            "text": "[Hacking] Pull the guard roster too.",
+            "check": { "attr": "logic", "skill": "hacking", "dc": 2, "bonus": "cyberdeck" },
+            "onSuccess": {
+              "goto": "roster",
+              "do": [{ "setFlag": "knows_routes" }, { "karma": 1 }]
+            },
+            "onFail": { "goto": "nothing" }
+          },
+          { "text": "(Log off.)", "end": true }
+        ]
+      },
+      "roster": {
+        "text": [
+          "GATE 4: 1 contract guard, 12h shift, no relief scheduled.",
+          "BENEFITS BULLETIN: dental coverage suspended, March.",
+          "Useful. Very useful."
+        ],
+        "choices": [{ "text": "(Log off.)", "end": true }]
+      },
+      "nothing": {
+        "text": ["Access denied. The terminal makes a noise like a disappointed parent."],
+        "choices": [{ "text": "(Log off.)", "end": true }]
+      }
+    }
+  }
+}

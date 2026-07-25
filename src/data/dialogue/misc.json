@@ -1,0 +1,229 @@
+{
+  "vendor_intro": {
+    "id": "vendor_intro",
+    "speaker": "Street Vendor",
+    "portrait": "civ",
+    "start": "greet",
+    "nodes": {
+      "greet": {
+        "text": [
+          "You want noodles or you want to be useful?",
+          "Ferristech watchers nested on my roof. Three of them.",
+          "Customers don't queue under a gun barrel."
+        ],
+        "choices": [
+          { "text": "I'll clear them out.", "goto": "accept" },
+          { "text": "What's in it for me?", "goto": "terms" },
+          { "text": "Noodles, then.", "end": true }
+        ]
+      },
+      "terms": {
+        "text": ["Seven hundred and a clip. And you can stop paying for noodles.", "Roof door's the one at the top of the market."],
+        "choices": [
+          { "text": "Deal.", "goto": "accept" },
+          { "text": "Pass.", "end": true }
+        ]
+      },
+      "accept": {
+        "text": ["Door's up there. Mind the ledge."],
+        "onEnter": [{ "startJob": "job_dronenest" }],
+        "choices": [{ "text": "On it.", "end": true }]
+      }
+    }
+  },
+
+  "vendor_busy": {
+    "id": "vendor_busy",
+    "speaker": "Street Vendor",
+    "portrait": "civ",
+    "start": "greet",
+    "nodes": {
+      "greet": {
+        "text": ["Still hearing rotors up there. Three of them, remember."],
+        "choices": [{ "text": "Working on it.", "end": true }]
+      }
+    }
+  },
+
+  "vendor_after": {
+    "id": "vendor_after",
+    "speaker": "Street Vendor",
+    "portrait": "civ",
+    "start": "greet",
+    "nodes": {
+      "greet": {
+        "text": ["Roof's quiet. Takings are up.", "Noodles are free for you. Forever. Don't abuse it."],
+        "choices": [{ "text": "I absolutely will.", "end": true }]
+      }
+    }
+  },
+
+  "rival_offer": {
+    "id": "rival_offer",
+    "speaker": "Sable",
+    "portrait": "rival",
+    "start": "greet",
+    "nodes": {
+      "greet": {
+        "text": [
+          "That case in your coat has a Ferristech seal on it.",
+          "Kaz is paying you three. I'll pay five, cash, now.",
+          "He'll never know which runner it was."
+        ],
+        "onEnter": [{ "setFlag": "met_sable" }],
+        "choices": [
+          { "text": "Five thousand. Done.", "goto": "sold" },
+          {
+            "text": "[Etiquette] Six, and I forget your face.",
+            "check": { "attr": "charisma", "skill": "etiquette", "dc": 3 },
+            "onSuccess": { "goto": "sold_high" },
+            "onFail": { "goto": "sold_refused" }
+          },
+          { "text": "Kaz gets the case.", "goto": "refuse" },
+          { "text": "(Say nothing.)", "end": true }
+        ]
+      },
+      "sold": {
+        "text": ["Smart. Pleasure doing business, ghost."],
+        "onEnter": [
+          { "takeItem": "wetwire_case" },
+          { "nuyen": 5000 },
+          { "karma": -1 },
+          { "setFlag": "kaz_burned" },
+          { "setFlag": "wetwire_resolved" },
+          { "failJob": "job_wetwire" }
+        ],
+        "choices": [{ "text": "(Take the money.)", "end": true }]
+      },
+      "sold_high": {
+        "text": ["Six. You've got a spine on you. I like that in a liability."],
+        "onEnter": [
+          { "takeItem": "wetwire_case" },
+          { "nuyen": 6000 },
+          { "karma": -1 },
+          { "setFlag": "kaz_burned" },
+          { "setFlag": "wetwire_resolved" },
+          { "failJob": "job_wetwire" }
+        ],
+        "choices": [{ "text": "(Take the money.)", "end": true }]
+      },
+      "sold_refused": {
+        "text": ["Five. It was always five. Yes or no."],
+        "choices": [
+          { "text": "Yes.", "goto": "sold" },
+          { "text": "No.", "goto": "refuse" }
+        ]
+      },
+      "refuse": {
+        "text": [
+          "Loyalty. In this district. Extraordinary.",
+          "I'll be here when it stops paying."
+        ],
+        "choices": [{ "text": "Don't wait up.", "end": true }]
+      }
+    }
+  },
+
+  "civ_plaza": {
+    "id": "civ_plaza",
+    "speaker": "Passerby",
+    "portrait": "civ",
+    "start": "greet",
+    "nodes": {
+      "greet": {
+        "text": [
+          "Don't go south. Gangers took the Strip last week.",
+          "They shot out every light and now they complain it's dark."
+        ],
+        "choices": [
+          { "text": "Thanks for the warning.", "end": true },
+          { "text": "Who runs the backlot?", "goto": "krait" }
+        ]
+      },
+      "krait": {
+        "text": [
+          "A razor called Krait. Wears a red maintenance badge like jewellery.",
+          "Ferristech pays him to keep the lot clear. Badly, and in cash."
+        ],
+        "choices": [{ "text": "Good to know.", "end": true }]
+      }
+    }
+  },
+
+  "terminal_lobby": {
+    "id": "terminal_lobby",
+    "speaker": "Lobby Terminal",
+    "portrait": "runner",
+    "start": "greet",
+    "nodes": {
+      "greet": {
+        "text": [
+          "FERRISTECH INTERNAL — VISITOR LOG",
+          "  Cold room access: EAST. Drone patrol: ACTIVE.",
+          "  Reminder: unscheduled discharge of firearms voids your dental."
+        ],
+        "choices": [
+          {
+            "text": "[Hacking] Idle the drone patrol.",
+            "check": { "attr": "logic", "skill": "hacking", "dc": 3, "bonus": "cyberdeck" },
+            "onSuccess": {
+              "goto": "idled",
+              "do": [{ "setFlag": "drones_idled" }, { "karma": 1 }]
+            },
+            "onFail": { "goto": "failed" }
+          },
+          { "text": "(Log off.)", "end": true }
+        ]
+      },
+      "idled": {
+        "text": ["Patrol routines suspended for maintenance.", "The rotor noise in the next room drops an octave."],
+        "choices": [{ "text": "(Log off.)", "end": true }]
+      },
+      "failed": {
+        "text": ["The terminal locks you out and logs the attempt.", "Somewhere, something starts paying attention."],
+        "choices": [{ "text": "(Log off.)", "end": true }]
+      }
+    }
+  },
+
+  "terminal_server": {
+    "id": "terminal_server",
+    "speaker": "Cold Room Terminal",
+    "portrait": "runner",
+    "start": "greet",
+    "nodes": {
+      "greet": {
+        "text": [
+          "ASSET 7734 — SEALED NEURAL INTERFACE",
+          "  ORIGIN: not disclosed",
+          "  DONOR STATUS: not disclosed",
+          "  NOTE: do not open the case. Do not scan the case."
+        ],
+        "choices": [
+          {
+            "text": "[Hacking] Find out what a 'donor' is here.",
+            "check": { "attr": "logic", "skill": "hacking", "dc": 3, "bonus": "cyberdeck" },
+            "onSuccess": {
+              "goto": "truth",
+              "do": [{ "giveItem": "datachip" }, { "karma": 1 }]
+            },
+            "onFail": { "goto": "sealed" }
+          },
+          { "text": "(Log off.)", "end": true }
+        ]
+      },
+      "truth": {
+        "text": [
+          "The donor record opens. There is a name in it, and an age,",
+          "and a date eleven days ago.",
+          "You copy the file to a chip. You are not sure why yet."
+        ],
+        "choices": [{ "text": "(Log off.)", "end": true }]
+      },
+      "sealed": {
+        "text": ["The record is sealed behind a corporate legal lock.", "Some doors are not worth the noise."],
+        "choices": [{ "text": "(Log off.)", "end": true }]
+      }
+    }
+  }
+}

@@ -1,0 +1,93 @@
+/** Kagemori Rooftops - the optional side job: clear the drone nest. */
+export default {
+  id: 'rooftop',
+  name: 'Kagemori Rooftops',
+  spawn: [10, 12],
+
+  entries: {
+    from_market: [10, 12],
+  },
+
+  ground: [
+    'vvvvvvvvvvvvvvvvvvvv',
+    'vvvvvvvvvvvvvvvvvvvv',
+    'vvvvvvvvvvvvvvvvvvvv',
+    'vvvvvvggggvvvvvvvvvv',
+    'vvvvvvvvvvvvvvvvvvvv',
+    'vvvvvvvvvvvvvvvvvvvv',
+    'vvvvvvvvvvvvvvvvvvvv',
+    'vvvvvvvvvvvvggggvvvv',
+    'vvvvvvvvvvvvvvvvvvvv',
+    'vvvvvvvvvvvvvvvvvvvv',
+    'vvvvvvvvvvvvvvvvvvvv',
+    'vvvvggggvvvvvvvvvvvv',
+    'vvvvvvvvvvvvvvvvvvvv',
+    'vvvvvvvvvvvvvvvvvvvv',
+    'vvvvvvvvvvvvvvvvvvvv',
+  ],
+
+  decor: [
+    'LLLLLLLLLLLLLLLLLLLL',
+    '(                  (',
+    '(   A        A     (',
+    '(                  (',
+    '(         Y        (',
+    '(                  (',
+    '(    A             (',
+    '(                  (',
+    '(           A      (',
+    '(                  (',
+    '(                  (',
+    '(    Y             (',
+    '(                  (',
+    '(                  (',
+    'LLLLLLLLLLDLLLLLLLLL',
+  ],
+
+  exits: {},
+
+  spawns: [
+    {
+      type: 'door',
+      id: 'roof_exit',
+      x: 10,
+      y: 14,
+      to: 'market',
+      entry: 'from_roof',
+      openTile: 'door_open',
+    },
+    {
+      type: 'enemy',
+      archetype: 'sec_drone',
+      id: 'roof_drone1',
+      x: 5,
+      y: 4,
+      brain: 'drone',
+    },
+    {
+      type: 'enemy',
+      archetype: 'sec_drone',
+      id: 'roof_drone2',
+      x: 14,
+      y: 6,
+      brain: 'drone',
+    },
+    {
+      type: 'enemy',
+      archetype: 'sec_drone',
+      id: 'roof_drone3',
+      x: 9,
+      y: 9,
+      brain: 'drone',
+    },
+    { type: 'pickup', item: 'ammo', amount: 1, x: 2, y: 12, once: 'roof_ammo' },
+    {
+      type: 'pickup',
+      item: 'credstick',
+      amount: 1,
+      x: 17,
+      y: 2,
+      once: 'roof_credstick',
+    },
+  ],
+};

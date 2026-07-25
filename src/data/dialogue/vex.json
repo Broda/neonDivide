@@ -1,0 +1,106 @@
+{
+  "vex_intro": {
+    "id": "vex_intro",
+    "speaker": "Vex",
+    "portrait": "vex",
+    "start": "greet",
+    "nodes": {
+      "greet": {
+        "text": [
+          "Kaz sent you. He always sends someone.",
+          "Ferristech's backlot door runs a Renraku reader.",
+          "You can brute it with a deck, or you can improvise."
+        ],
+        "choices": [
+          { "text": "Sell me a deck.", "goto": "shop" },
+          {
+            "text": "[Etiquette] We're both Kaz's people. Front me one.",
+            "check": { "attr": "charisma", "skill": "etiquette", "dc": 3 },
+            "onSuccess": { "goto": "gift" },
+            "onFail": { "goto": "refused" }
+          },
+          { "text": "What counts as improvising?", "goto": "advice" },
+          { "text": "I'll manage.", "end": true }
+        ]
+      },
+      "shop": {
+        "text": ["Three hundred nuyen. Renraku, two generations old, still bites.", "Adds two dice to anything you point it at."],
+        "choices": [
+          {
+            "text": "Done. (300¥)",
+            "if": { "nuyen": 300 },
+            "goto": "sold",
+            "do": [{ "nuyen": -300 }, { "giveItem": "cyberdeck" }]
+          },
+          { "text": "I'm short.", "goto": "advice" }
+        ]
+      },
+      "sold": {
+        "text": ["Pleasure. Don't jack it into anything with a pulse."],
+        "onEnter": [{ "setFlag": "met_vex" }],
+        "choices": [{ "text": "Noted.", "end": true }]
+      },
+      "gift": {
+        "text": [
+          "...Fine. Kaz's people, Kaz's problem.",
+          "Take it. If it burns out, you never met me."
+        ],
+        "onEnter": [
+          { "giveItem": "cyberdeck" },
+          { "setFlag": "met_vex" },
+          { "setFlag": "vex_favour" },
+          { "karma": 1 }
+        ],
+        "choices": [{ "text": "You're a saint, Vex.", "end": true }]
+      },
+      "refused": {
+        "text": ["Nice try. I like you, but I like eating more.", "Three hundred, same as everyone."],
+        "onEnter": [{ "setFlag": "met_vex" }],
+        "choices": [
+          { "text": "Show me the deck, then.", "goto": "shop" },
+          { "text": "Another time.", "end": true }
+        ]
+      },
+      "advice": {
+        "text": [
+          "Two other ways through that door.",
+          "There's a razor called Krait running the lot. He carries a red badge.",
+          "Or there's a guard on the gate who is very, very bored."
+        ],
+        "onEnter": [{ "setFlag": "met_vex" }, { "setFlag": "knows_routes" }],
+        "choices": [
+          { "text": "Bored how?", "goto": "bored" },
+          { "text": "Good enough.", "end": true }
+        ]
+      },
+      "bored": {
+        "text": [
+          "Twelve-hour shift, no overtime, and a company that just cut his dental.",
+          "You don't need to hack a man like that. You just need to agree with him."
+        ],
+        "choices": [{ "text": "I can do that.", "end": true }]
+      }
+    }
+  },
+
+  "vex_after": {
+    "id": "vex_after",
+    "speaker": "Vex",
+    "portrait": "vex",
+    "start": "greet",
+    "nodes": {
+      "greet": {
+        "text": ["Deck treating you right? Point it at the reader on the gate.", "Logic plus hacking, plus the two it gives you."],
+        "choices": [
+          { "text": "Any other way in?", "goto": "advice" },
+          { "text": "Thanks, Vex.", "end": true }
+        ]
+      },
+      "advice": {
+        "text": ["Krait's red badge. Or the guard's bad mood. Pick one."],
+        "onEnter": [{ "setFlag": "knows_routes" }],
+        "choices": [{ "text": "Got it.", "end": true }]
+      }
+    }
+  }
+}
