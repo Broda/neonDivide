@@ -174,6 +174,20 @@ For the same reason the game scales by **whole multiples only**
 `Scale.FIT` would pick a fractional factor like 4.21×, making some source pixels
 4 screen pixels wide and others 5 — text is where that unevenness shows worst.
 
+The same rule applies *inside* the canvas, and its failure mode is much less
+obvious than blur. Sampling is NEAREST, so text drawn on a half pixel does not
+soften — it reads the neighbouring row of the atlas, and the atlas is 20 glyphs
+wide, so you get a crisp, confident, entirely **different** letter. "JACK IN"
+renders as "2JHUK IN".
+
+Two things keep that from happening. The font's line height is deliberately
+**even** (8px cell + 2px spacing, set in `tools/gen_font.py` and mirrored by
+`LINE_H`), so centring a label with a `0.5` origin cannot land on a half pixel
+however many lines it has. And `apps/game/src/ui/snap.js` nudges any text
+object onto the grid, which `makeText` applies on creation — call it again
+after moving or re-texting centred text, because a new string can change the
+height the origin is measured against.
+
 Three design decisions carry most of the extensibility:
 
 1. **The generated tileset JSON is the single source of truth for collision.**

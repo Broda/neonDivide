@@ -94,8 +94,9 @@ export class TitleScene extends Phaser.Scene {
     });
 
     // Follows the menu rather than sitting at a fixed y: the list is one row
-    // long before there is a save and three rows long after.
-    this.detail.setY(MENU_TOP + (this.items.length - 0.5) * ROW_H + 10);
+    // long before there is a save and three rows long after. Rounded because
+    // bitmap text on a fractional pixel samples the wrong row of the atlas.
+    this.detail.setY(Math.round(MENU_TOP + (this.items.length - 0.5) * ROW_H + 10));
     this.detail.setText(this.describe(this.items[this.selected]));
   }
 

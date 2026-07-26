@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 
+import { snapToPixel } from './snap.js';
+
 /**
  * All UI text goes through here.
  *
@@ -78,11 +80,14 @@ export function makeText(scene, x, y, str = '', opts = {}) {
   // square, which a fractional font size would not.
   if (opts.scale) t.setScale(opts.scale);
   if (opts.origin) t.setOrigin(opts.origin[0], opts.origin[1]);
-  return t;
+  return snapToPixel(t);
 }
 
-/** Height of one line of text, in pixels. */
-export const LINE_H = 9;
+/**
+ * Height of one line of text, in pixels: the 8px cell plus the font's line
+ * spacing. Kept even on purpose - see the note in tools/gen_font.py.
+ */
+export const LINE_H = 10;
 /** Advance width of one glyph. The font is fixed-width, so this is exact. */
 export const CHAR_W = 6;
 

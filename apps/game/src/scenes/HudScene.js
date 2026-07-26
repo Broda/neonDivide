@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import { GAME_W, HUD_H, SCENES } from '../config.js';
 import { bus, EV } from '../core/EventBus.js';
 import { state } from '../core/GameState.js';
+import { snapToPixel } from '../ui/snap.js';
 import { LINE_H, makeText, TONE, UI } from '../ui/text.js';
 
 /** Toasts are pooled - allocating text objects per message churns textures. */
@@ -160,7 +161,10 @@ export class HudScene extends Phaser.Scene {
     this.toasts.push(slot);
 
     slot.label.setText(text).setTint(TONE[tone] ?? TONE.info);
+    // Centred, so re-snap: the width changed with the message and the object
+    // is being moved to a new row.
     slot.label.setPosition(GAME_W / 2, y).setAlpha(1).setVisible(true);
+    snapToPixel(slot.label);
     slot.bg.setSize(slot.label.width + 6, LINE_H + 2);
     slot.bg.setPosition(GAME_W / 2, y).setAlpha(0.85).setVisible(true);
 
