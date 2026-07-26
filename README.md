@@ -233,6 +233,48 @@ Supported objective types are `kill`, `collect`, `reach`, `talk`, `deliver`,
 `flag`, `hack` and `condition`. Jobs complete when all non-optional objectives
 are done unless `manualComplete` is set and dialogue completes the job.
 
+### Creating records
+
+Every section's list has a **＋ New** button that creates a top-level record —
+a room, enemy or NPC archetype, item, dialogue graph or job. The new record is
+selected immediately so it can be edited in place.
+
+Records are created ready to save rather than as stubs that need repairing:
+
+- **Rooms** are walled 20×15 blanks, registered in the level of the room they
+  attach to, with the exit wired in *both* directions and a two-tile doorway
+  opened in *both* walls — so the connection is walkable from the moment it
+  exists. Neither half is a convenience. A room listed in a level that can't be
+  walked to from its start room is a validation error, so a half-connected room
+  would block saving the project; and an exit the player cannot physically
+  reach is worse than an error, because nothing reports it — the connection
+  just silently does nothing. Sides that already carry an exit are not offered,
+  since attaching there would replace that exit and strand whatever it led to.
+- **Actors** offer only sprite sheets that already exist, **items** only
+  existing icons and **dialogue graphs** only existing portraits. All three are
+  generated art, and a name with no PNG behind it fails at load time rather
+  than in validation.
+- **Jobs** are seeded with one objective. A job with an empty objective list has
+  nothing outstanding, so it would complete the instant it started.
+
+Opening the doorway is the one operation that edits art somebody already drew,
+so it is kept as narrow as it can be. It clears the two cells the doorway
+occupies and nothing else, and only where a tile actually collides — decoration
+sitting on that edge survives, and an edge that is already open is left alone.
+The dialog names the cost before you commit ("Clears 2 wall tiles from Neon
+Market to open the way through"), and `Ctrl+Z` undoes the whole creation.
+
+Both doorways land on the same cells (x 9–10 north/south, y 7–8 east/west,
+matching every hand-authored exit in the game) because
+`RoomManager.entryPosition` carries the player's perpendicular coordinate
+across the edge — a gap at y=7 leading to a gap at y=3 would deposit them
+against a wall.
+
+IDs become object keys that other records reference as bare strings, so they
+are restricted to lower case letters, digits and underscores, and are checked
+for collisions within their own collection as you type. An ID cannot be renamed
+from the editor afterwards.
+
 ### Operations that still require source changes
 
 The editor owns game content, not generated artwork or executable behavior.
@@ -248,11 +290,9 @@ These operations remain code workflows:
 - **New objective type:** implement it in
   `apps/game/src/quests/objectives.js`.
 
-The current editor can add entities, dialogue nodes and job objectives, but it
-does not yet create new top-level room, actor, item, dialogue-graph or job IDs.
-For those records, add the initial entry to the appropriate
-`packages/content/data/*.json` file, choose **Reload**, then continue editing it
-in Content Forge. Run `npm run validate:content` after any direct JSON change.
+Levels and tile legend entries are still hand-edited in
+`packages/content/data/*.json`. After a direct JSON change, choose **Reload** in
+the editor and run `npm run validate:content`.
 
 ---
 
@@ -290,8 +330,11 @@ precisely so the whole rules layer stays importable in Node.
 
 Coverage includes the condition evaluator, effect verbs, dice-pool
 distribution, JobManager lifecycle and persistence, the save round trip and
-checkpoint policy, editor history and painting operations, atomic content
-persistence and rollback, and game/editor dependency isolation. The content validator checks room dimensions, tile characters,
+checkpoint policy, editor history, painting and record creation, atomic content
+persistence and rollback, and game/editor dependency isolation. Every record
+creator is asserted to leave the project passing validation, which is the whole
+contract: creating something must never hand the author a project they cannot
+save. The content validator checks room dimensions, tile characters,
 player and entity coordinates, exits, doors, archetypes, items, dialogue links,
 job objectives and reachability from each level's start room.
 

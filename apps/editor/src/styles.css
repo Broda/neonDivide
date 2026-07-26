@@ -214,6 +214,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .all-clear { padding: 14px; color: var(--green); font-size: 11px; }
 .toast { position: fixed; right: 18px; bottom: 48px; z-index: 9; display: flex; gap: 20px; max-width: 430px; padding: 11px 13px; border: 1px solid #355160; background: #101b25; color: #cbd7e2; box-shadow: 0 12px 35px #000; font-size: 10px; cursor: pointer; }
 .toast span { color: var(--muted); }
+.new-button { border: 1px solid var(--line-bright); padding: 4px 8px; background: #16202c; color: var(--cyan); font-size: 9px; letter-spacing: .06em; cursor: pointer; }
+.new-button:hover { border-color: var(--cyan-dim); background: #1a2734; }
+
+.modal-backdrop { position: fixed; inset: 0; z-index: 12; display: grid; place-items: center; padding: 20px; background: rgba(4, 7, 11, .72); }
+.modal { width: min(420px, 100%); max-height: 100%; overflow-y: auto; padding: 20px 22px; border: 1px solid var(--line-bright); background: var(--panel); box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+.modal-head { margin-bottom: 18px; }
+.modal-head h2 { margin: 4px 0 0; font-size: 16px; font-weight: 600; }
+.modal .field input.invalid { border-color: var(--pink); }
+.modal-actions { display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin-top: 4px; }
+.modal-actions .save-button:disabled { opacity: .4; cursor: not-allowed; }
+
 .empty-state, .loading-screen { display: grid; place-items: center; align-content: center; height: 100%; color: var(--muted); }
 .empty-state span { color: var(--cyan); font-size: 28px; }
 .loading-screen { gap: 12px; background: radial-gradient(circle, #101d28, #080b12 45%); }

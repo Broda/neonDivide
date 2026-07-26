@@ -8,8 +8,10 @@ import {
 
 import { loadProject, saveProject } from './api';
 import {
-  commitHistory, createHistory, dirtyResourceNames, layoutRooms, paintTile,
-  redoHistory, resourceValue, undoHistory,
+  commitHistory, connectableRooms, createActor, createDialogue, createHistory,
+  createItem, createJob, createRoom, dirtyResourceNames, doorwayEdits,
+  freeDirections, idError, layoutRooms, paintTile, redoHistory, resourceValue,
+  undoHistory,
 } from './model.js';
 
 type Section = 'world' | 'rooms' | 'actors' | 'items' | 'dialogues' | 'jobs';
@@ -66,17 +68,120 @@ function JsonEditor({ label, value, onChange }: { label: string; value: unknown;
   );
 }
 
+/**
+ * One field of a new-record form. `options` turns it into a picker, which is
+ * how every cross-reference (rooms, sheets, icons) is kept to IDs that already
+ * exist rather than free text the validator would later reject.
+ */
+interface NewField {
+  key: string;
+  label: string;
+  /** A function when the legal choices depend on another field's value. */
+  options?: string[] | ((values: LooseRecord) => string[]);
+  optionLabel?: (value: string) => string;
+  /** A function when the hint should describe the current selection. */
+  hint?: string | ((values: LooseRecord) => string);
+  optional?: boolean;
+}
+
+/**
+ * Creates a top-level record: a room, actor archetype, item, dialogue graph or
+ * job. These used to require hand-editing packages/content/data/*.json and
+ * reloading, because the editor could only ever edit records that existed.
+ *
+ * Everything it produces is valid on arrival - the point is to land in a
+ * saveable project, not to leave the author fixing validation errors.
+ */
+function NewRecordDialog({
+  project, kind, title, fields, initial, onCancel, onCreate,
+}: {
+  project: ContentProject; kind: string; title: string; fields: NewField[];
+  initial: LooseRecord; onCancel: () => void;
+  onCreate: (values: LooseRecord) => void;
+}) {
+  const [values, setValues] = useState<LooseRecord>(() => ({ id: '', ...initial }));
+  const set = (key: string, value: string) => setValues((current) => ({ ...current, [key]: value }));
+
+  const optionsFor = (field: NewField) => (typeof field.options === 'function' ? field.options(values) : field.options);
+
+  // A field whose choices depend on another field can hold a value that is no
+  // longer legal once that other field changes. Fall back to the first legal
+  // choice so what gets submitted is always what the form is showing.
+  const effective: LooseRecord = { ...values };
+  for (const field of fields) {
+    const options = optionsFor(field);
+    if (options && !(field.optional && !effective[field.key]) && !options.includes(effective[field.key])) {
+      effective[field.key] = options[0] ?? '';
+    }
+  }
+
+  const badId = idError(project, kind, values.id);
+  const blank = fields.find((field) => !field.optional && !String(effective[field.key] ?? '').trim());
+  const problem = badId ?? (blank ? `${blank.label} is required.` : null);
+
+  const submit = () => { if (!problem) onCreate(effective); };
+
+  return (
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div
+        className="modal"
+        role="dialog"
+        aria-label={title}
+        onClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') onCancel();
+          if (event.key === 'Enter' && !(event.target as HTMLElement).matches('textarea')) submit();
+        }}
+      >
+        <div className="modal-head"><span className="eyebrow">CREATE</span><h2>{title}</h2></div>
+        <Field label="ID" hint={badId ?? 'Referenced by other records — it cannot be renamed here later.'}>
+          <input
+            autoFocus
+            className={values.id && badId ? 'invalid' : ''}
+            value={values.id}
+            placeholder="new_id"
+            onChange={(event) => set('id', event.target.value)}
+          />
+        </Field>
+        {fields.map((field) => {
+          const options = optionsFor(field);
+          const hint = typeof field.hint === 'function' ? field.hint(effective) : field.hint;
+          return (
+            <Field label={field.label} key={field.key} hint={hint}>
+              {options
+                ? (
+                  <select value={effective[field.key] ?? ''} onChange={(event) => set(field.key, event.target.value)}>
+                    {field.optional && <option value="">None</option>}
+                    {options.map((option) => <option value={option} key={option}>{field.optionLabel?.(option) ?? option}</option>)}
+                  </select>
+                )
+                : <input value={values[field.key] ?? ''} onChange={(event) => set(field.key, event.target.value)} />}
+            </Field>
+          );
+        })}
+        <div className="modal-actions">
+          <button className="text-button" onClick={onCancel}>Cancel</button>
+          <button className="save-button" disabled={Boolean(problem)} title={problem ?? ''} onClick={submit}>Create</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SearchList({
-  title, items, selected, onSelect, detail,
+  title, items, selected, onSelect, detail, onNew,
 }: {
   title: string; items: string[]; selected: string; onSelect: (id: string) => void;
-  detail?: (id: string) => string;
+  detail?: (id: string) => string; onNew?: () => void;
 }) {
   const [search, setSearch] = useState('');
   const visible = items.filter((id) => `${id} ${detail?.(id) ?? ''}`.toLowerCase().includes(search.toLowerCase()));
   return (
     <aside className="resource-list">
-      <div className="resource-list-head"><strong>{title}</strong><span>{items.length}</span></div>
+      <div className="resource-list-head">
+        <strong>{title}</strong>
+        {onNew ? <button className="new-button" onClick={onNew} title={`New ${title.replace(/s$/, '').toLowerCase()}`}>＋ New</button> : <span>{items.length}</span>}
+      </div>
       <div className="search"><span>⌕</span><input aria-label={`Search ${title}`} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Filter…" /></div>
       <div className="resource-scroll">
         {visible.map((id) => (
@@ -117,8 +222,19 @@ function RoomEditor({
   const [tile, setTile] = useState('D');
   const [meta, setMeta] = useState<TileMeta | null>(null);
   const [spawnIndex, setSpawnIndex] = useState<number | null>(null);
+  const [creating, setCreating] = useState(false);
   useEffect(() => { fetch('/assets/tiles_neokyoto.json').then((response) => response.json()).then(setMeta); }, []);
   useEffect(() => setSpawnIndex(null), [roomId]);
+
+  // Which legend characters actually collide. Opening a doorway uses this so
+  // it removes only what blocks the player, leaving decoration that happens to
+  // sit on the edge alone. Null until the generated metadata arrives, which
+  // falls back to clearing whatever is in the way.
+  const solidChars = useMemo(() => (meta
+    ? new Set(Object.entries(project.tiles.legend)
+      .filter(([, name]) => meta.tiles.find((entry) => entry.name === name)?.solid)
+      .map(([character]) => character))
+    : null), [meta, project.tiles.legend]);
 
   const room = project.rooms[roomId];
   if (!room) return <Empty>Select a room to begin editing.</Empty>;
@@ -138,7 +254,49 @@ function RoomEditor({
     ? Object.keys(project.actors.npcs) : Object.keys(project.actors.enemies);
   return (
     <div className="editor-grid room-editor">
-      <SearchList title="Rooms" items={Object.keys(project.rooms)} selected={roomId} onSelect={onRoomId} detail={(id) => project.rooms[id].name} />
+      <SearchList title="Rooms" items={Object.keys(project.rooms)} selected={roomId} onSelect={onRoomId} detail={(id) => project.rooms[id].name} onNew={() => setCreating(true)} />
+      {creating && (
+        <NewRecordDialog
+          project={project}
+          kind="room"
+          title="New room"
+          initial={{ name: '', connectTo: roomId, direction: '' }}
+          fields={[
+            { key: 'name', label: 'Display name' },
+            {
+              key: 'connectTo',
+              label: 'Connects to',
+              options: connectableRooms(project),
+              optionLabel: (id) => project.rooms[id].name,
+              hint: 'Only rooms with a free side are listed.',
+            },
+            {
+              key: 'direction',
+              label: 'Lies to the',
+              // Directions already in use would otherwise be overwritten,
+              // stranding whatever they led to.
+              options: (values) => freeDirections(project, values.connectTo),
+              // Spells out the edit to the existing room, since that is the
+              // one thing here that changes art somebody already drew.
+              hint: (values) => {
+                const source = project.rooms[values.connectTo];
+                if (!source || !values.direction) return 'Both exits are wired and a doorway is opened on each side.';
+                const edits = doorwayEdits(source, values.direction, solidChars);
+                return edits.length === 0
+                  ? `Both exits are wired. ${source.name}'s ${values.direction} wall is already open.`
+                  : `Both exits are wired. Clears ${edits.length} wall tile${edits.length === 1 ? '' : 's'} from ${source.name} to open the way through.`;
+              },
+            },
+          ]}
+          onCancel={() => setCreating(false)}
+          onCreate={(values) => {
+            onChange(createRoom(project, { ...values, solidChars } as any));
+            onRoomId(values.id);
+            setSpawnIndex(null);
+            setCreating(false);
+          }}
+        />
+      )}
       <main className="canvas-panel">
         <div className="panel-toolbar">
           <div className="segmented">
@@ -300,15 +458,50 @@ function RecordForm({
   );
 }
 
+/**
+ * Sheets, icons and portraits are generated art keyed by name, so the only
+ * safe choices are the ones already in use - a new one needs a change to
+ * tools/gen_actors.py (or the icon/portrait generators) and `npm run assets`.
+ */
+function sheetOptions(project: ContentProject) {
+  const actors = [...Object.values(project.actors.enemies), ...Object.values(project.actors.npcs)];
+  return [...new Set(actors.map((actor) => actor.sheet as string))].sort();
+}
+
 function ActorsEditor({ project, onChange }: { project: ContentProject; onChange: (project: ContentProject) => void }) {
   const [category, setCategory] = useState<'enemies' | 'npcs'>('enemies');
   const ids = Object.keys(project.actors[category]);
   const [selected, setSelected] = useState(ids[0]);
+  const [creating, setCreating] = useState(false);
   useEffect(() => { if (!project.actors[category][selected]) setSelected(Object.keys(project.actors[category])[0]); }, [category, project, selected]);
   const update = (record: LooseRecord) => { const next = structuredClone(project); next.actors[category][selected] = record; onChange(next); };
+  const kind = category === 'enemies' ? 'enemy' : 'npc';
   return (
     <div className="editor-grid">
-      <aside className="resource-list"><div className="resource-list-head"><strong>Actors</strong><div className="mini-tabs"><button className={category === 'enemies' ? 'active' : ''} onClick={() => setCategory('enemies')}>Enemies</button><button className={category === 'npcs' ? 'active' : ''} onClick={() => setCategory('npcs')}>NPCs</button></div></div><div className="resource-scroll">{ids.map((id) => <button className={selected === id ? 'resource active' : 'resource'} key={id} onClick={() => setSelected(id)}><span className="resource-mark"/><span><strong>{project.actors[category][id].name as string}</strong><small>{id}</small></span></button>)}</div></aside>
+      <aside className="resource-list"><div className="resource-list-head"><strong>Actors</strong><div className="mini-tabs"><button className={category === 'enemies' ? 'active' : ''} onClick={() => setCategory('enemies')}>Enemies</button><button className={category === 'npcs' ? 'active' : ''} onClick={() => setCategory('npcs')}>NPCs</button></div><button className="new-button" onClick={() => setCreating(true)} title={`New ${kind} archetype`}>＋</button></div><div className="resource-scroll">{ids.map((id) => <button className={selected === id ? 'resource active' : 'resource'} key={id} onClick={() => setSelected(id)}><span className="resource-mark"/><span><strong>{project.actors[category][id].name as string}</strong><small>{id}</small></span></button>)}</div></aside>
+      {creating && (
+        <NewRecordDialog
+          project={project}
+          kind={kind}
+          title={category === 'enemies' ? 'New enemy archetype' : 'New NPC archetype'}
+          initial={{ name: '', sheet: sheetOptions(project)[0] }}
+          fields={[
+            { key: 'name', label: 'Display name' },
+            {
+              key: 'sheet',
+              label: 'Sprite sheet',
+              options: sheetOptions(project),
+              hint: 'Generated art. A new sheet needs a spec in tools/gen_actors.py and `npm run assets`.',
+            },
+          ]}
+          onCancel={() => setCreating(false)}
+          onCreate={(values) => {
+            onChange(createActor(project, category, values as any));
+            setSelected(values.id);
+            setCreating(false);
+          }}
+        />
+      )}
       {selected && <RecordForm title={project.actors[category][selected].name as string} subtitle={`${category === 'enemies' ? 'enemy' : 'NPC'} archetype · ${selected}`} record={project.actors[category][selected]} onChange={update} />}
       <aside className="inspector reference-panel"><div className="inspector-title"><span>References</span></div><p>Actor IDs are offered as searchable choices in room spawns and job objectives.</p><div className="stat-line"><span>Enemy archetypes</span><strong>{Object.keys(project.actors.enemies).length}</strong></div><div className="stat-line"><span>NPC archetypes</span><strong>{Object.keys(project.actors.npcs).length}</strong></div></aside>
     </div>
@@ -318,13 +511,33 @@ function ActorsEditor({ project, onChange }: { project: ContentProject; onChange
 function ItemsEditor({ project, onChange }: { project: ContentProject; onChange: (project: ContentProject) => void }) {
   const ids = Object.keys(project.items);
   const [selected, setSelected] = useState(ids[0]);
+  const [creating, setCreating] = useState(false);
+  const icons = [...new Set(ids.map((id) => project.items[id].icon as string))].sort();
   const update = (record: LooseRecord) => { const next = structuredClone(project); next.items[selected] = record; onChange(next); };
-  return <div className="editor-grid"><SearchList title="Items" items={ids} selected={selected} onSelect={setSelected} detail={(id) => project.items[id].name as string}/><RecordForm title={project.items[selected].name as string} subtitle={`item definition · ${selected}`} record={project.items[selected]} onChange={update}/><aside className="inspector reference-panel"><div className="inspector-title"><span>Item preview</span></div><div className="item-glyph">◆</div><h3>{project.items[selected].name as string}</h3><p>{project.items[selected].desc as string}</p><div className="tag-row"><span>{project.items[selected].icon as string}</span>{Boolean(project.items[selected].consumeOnPickup) && <span>consumable</span>}</div></aside></div>;
+  return <div className="editor-grid"><SearchList title="Items" items={ids} selected={selected} onSelect={setSelected} detail={(id) => project.items[id].name as string} onNew={() => setCreating(true)}/>
+    {creating && (
+      <NewRecordDialog
+        project={project}
+        kind="item"
+        title="New item"
+        initial={{ name: '', icon: icons[0], desc: '' }}
+        fields={[
+          { key: 'name', label: 'Display name' },
+          { key: 'icon', label: 'Icon', options: icons, hint: 'Generated art, drawn by tools/gen_fx.py.' },
+          { key: 'desc', label: 'Description' },
+        ]}
+        onCancel={() => setCreating(false)}
+        onCreate={(values) => { onChange(createItem(project, values as any)); setSelected(values.id); setCreating(false); }}
+      />
+    )}
+    <RecordForm title={project.items[selected].name as string} subtitle={`item definition · ${selected}`} record={project.items[selected]} onChange={update}/><aside className="inspector reference-panel"><div className="inspector-title"><span>Item preview</span></div><div className="item-glyph">◆</div><h3>{project.items[selected].name as string}</h3><p>{project.items[selected].desc as string}</p><div className="tag-row"><span>{project.items[selected].icon as string}</span>{Boolean(project.items[selected].consumeOnPickup) && <span>consumable</span>}</div></aside></div>;
 }
 
 function DialogueEditor({ project, onChange }: { project: ContentProject; onChange: (project: ContentProject) => void }) {
   const graphIds = Object.keys(project.dialogues);
   const [selected, setSelected] = useState(graphIds[0]);
+  const [creating, setCreating] = useState(false);
+  const portraits = [...new Set(graphIds.map((id) => (project.dialogues[id] as LooseRecord).portrait).filter(Boolean))].sort() as string[];
   const graph = project.dialogues[selected] as LooseRecord;
   const nodeIds = Object.keys(graph.nodes ?? {});
   const [nodeId, setNodeId] = useState(nodeIds[0]);
@@ -334,7 +547,21 @@ function DialogueEditor({ project, onChange }: { project: ContentProject; onChan
   const updateNode = (patch: LooseRecord) => updateGraph({ ...graph, nodes: { ...graph.nodes, [nodeId]: { ...node, ...patch } } });
   return (
     <div className="editor-grid graph-editor">
-      <SearchList title="Dialogue graphs" items={graphIds} selected={selected} onSelect={setSelected} detail={(id) => (project.dialogues[id] as LooseRecord).speaker ?? id}/>
+      <SearchList title="Dialogue graphs" items={graphIds} selected={selected} onSelect={setSelected} detail={(id) => (project.dialogues[id] as LooseRecord).speaker ?? id} onNew={() => setCreating(true)}/>
+      {creating && (
+        <NewRecordDialog
+          project={project}
+          kind="dialogue"
+          title="New dialogue graph"
+          initial={{ speaker: '', portrait: '' }}
+          fields={[
+            { key: 'speaker', label: 'Speaker name' },
+            { key: 'portrait', label: 'Portrait', options: portraits, optional: true, hint: 'Generated art, drawn by tools/gen_fx.py.' },
+          ]}
+          onCancel={() => setCreating(false)}
+          onCreate={(values) => { onChange(createDialogue(project, values as any)); setSelected(values.id); setCreating(false); }}
+        />
+      )}
       <main className="dialogue-workspace">
         <div className="graph-head"><div><span className="eyebrow">DIALOGUE GRAPH</span><h2>{selected}</h2></div><span className="speaker-chip">{graph.speaker ?? 'Narrator'}</span></div>
         <div className="node-flow">
@@ -365,6 +592,7 @@ function DialogueEditor({ project, onChange }: { project: ContentProject; onChan
 function JobsEditor({ project, onChange }: { project: ContentProject; onChange: (project: ContentProject) => void }) {
   const jobIds = Object.keys(project.jobs);
   const [selected, setSelected] = useState(jobIds[0]);
+  const [creating, setCreating] = useState(false);
   const job = project.jobs[selected] as LooseRecord;
   const [objectiveIndex, setObjectiveIndex] = useState(0);
   const objective = job.objectives?.[objectiveIndex] as LooseRecord | undefined;
@@ -374,7 +602,24 @@ function JobsEditor({ project, onChange }: { project: ContentProject; onChange: 
   };
   return (
     <div className="editor-grid graph-editor">
-      <SearchList title="Jobs" items={jobIds} selected={selected} onSelect={(id) => { setSelected(id); setObjectiveIndex(0); }} detail={(id) => (project.jobs[id] as LooseRecord).title}/>
+      <SearchList title="Jobs" items={jobIds} selected={selected} onSelect={(id) => { setSelected(id); setObjectiveIndex(0); }} detail={(id) => (project.jobs[id] as LooseRecord).title} onNew={() => setCreating(true)}/>
+      {creating && (
+        <NewRecordDialog
+          project={project}
+          kind="job"
+          title="New job"
+          initial={{ title: '' }}
+          fields={[{ key: 'title', label: 'Job title', hint: 'A first objective is seeded — a job with none completes the moment it starts.' }]}
+          onCancel={() => setCreating(false)}
+          onCreate={(values) => {
+            const level = project.levels[project.manifest.levels[0]];
+            onChange(createJob(project, { ...values, startRoom: level.start } as any));
+            setSelected(values.id);
+            setObjectiveIndex(0);
+            setCreating(false);
+          }}
+        />
+      )}
       <main className="dialogue-workspace">
         <div className="graph-head"><div><span className="eyebrow">OBJECTIVE GRAPH</span><h2>{job.title}</h2></div><span className="speaker-chip">{job.payment?.nuyen ?? 0} ¥</span></div>
         <div className="objective-flow">
