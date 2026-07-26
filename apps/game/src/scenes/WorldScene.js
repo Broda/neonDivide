@@ -4,6 +4,7 @@ import {
   DEPTH, HUD_H, ROOM_H, ROOM_PX_H, ROOM_PX_W, ROOM_W, SCENES, TILE,
   TRANSITION_MS,
 } from '../config.js';
+import { startAutosave } from '../core/autosave.js';
 import { bus, EV } from '../core/EventBus.js';
 import { state } from '../core/GameState.js';
 import { RoomManager } from '../core/RoomManager.js';
@@ -58,8 +59,14 @@ export class WorldScene extends Phaser.Scene {
       ? requestedRoom
       : this.state.currentRoom ?? LEVEL_01.start;
     const startDef = this.rooms.get(startId) ?? this.rooms.get(LEVEL_01.start);
-    const requestedX = import.meta.env.DEV ? Number(query.get('x')) : Number.NaN;
-    const requestedY = import.meta.env.DEV ? Number(query.get('y')) : Number.NaN;
+    // `has` first: query.get() of a missing param is null, and Number(null) is
+    // 0 - which passes the integer/range guard below and silently spawns every
+    // dev run in the top-left corner instead of the room's authored start.
+    const devQuery = (key) => (import.meta.env.DEV && query.has(key)
+      ? Number(query.get(key))
+      : Number.NaN);
+    const requestedX = devQuery('x');
+    const requestedY = devQuery('y');
     const spawnX = Number.isInteger(requestedX) && requestedX >= 0 && requestedX < ROOM_W
       ? requestedX : startDef.spawn?.[0] ?? 10;
     const spawnY = Number.isInteger(requestedY) && requestedY >= 0 && requestedY < ROOM_H
@@ -69,6 +76,10 @@ export class WorldScene extends Phaser.Scene {
 
     this.player = new Player(this, sx, sy, this.state);
     this.transitioning = false;
+
+    // Installed before the first buildRoom so entering the opening room is
+    // itself a checkpoint - Continue works from the moment a run begins.
+    this.stopAutosave = startAutosave(this.state);
 
     this.buildRoom(startId);
     this.setupKeys();
@@ -103,6 +114,7 @@ export class WorldScene extends Phaser.Scene {
     this.events.once('shutdown', () => {
       bus.off(EV.PLAYER_DIED, this.onPlayerDied, this);
       this.jobs.detach();
+      this.stopAutosave();
     });
   }
 

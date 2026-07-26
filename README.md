@@ -69,6 +69,33 @@ state readout, and hotkeys (`1` heal, `2` ammo, `3` next room).
 | `TAB` | Job log + character sheet |
 | `1`–`6` | Pick a dialogue option |
 
+On the title screen and in dialogue, `W`/`S` (or the arrows) move the cursor and
+`E` confirms. The death screen offers `E` to reload the last checkpoint, `N` for
+a new run and `T` to return to the title.
+
+---
+
+## Saving
+
+The game keeps **one** save, in `localStorage` under `neon-divide-save-v1`. It
+is written automatically — there is no save command — and the HUD flashes
+`SAVED` when it happens.
+
+`apps/game/src/core/autosave.js` holds the whole policy: the game checkpoints
+on `ROOM_ENTERED` and `JOB_COMPLETED`, and deliberately **not** on death, so
+reloading rewinds to the start of the room you died in rather than to a corpse.
+Changing when the game saves means editing that one array.
+
+A save is just `GameState.serialize()` plus a version stamp, which works because
+job progress is stored as flags rather than in a parallel structure — see
+`JobManager`. `GameState.peekSave()` reads it without disturbing the live run,
+so the title screen can describe a save it hasn't loaded. A blob whose
+`version` doesn't match the current `SAVE_VERSION` is ignored rather than
+migrated, and never half-applied to a run.
+
+`setStorage()` swaps the backend, which is how `tests/save.test.js` exercises
+persistence headlessly alongside the rest of the rules layer.
+
 ---
 
 ## How it fits together
@@ -82,7 +109,7 @@ apps/
       core/               state, events, rooms and animation
       entities/           actors, interactables and enemy AI
       quests/             conditions, dialogue, dice, jobs and objectives
-      scenes/             Boot / World / Hud / Dialogue / Journal / GameOver
+      scenes/             Boot / Title / World / Hud / Dialogue / Journal / GameOver
       data/               thin adapters around shared canonical content
     public/assets/        generated runtime art and metadata
     tests/                headless game rules tests
@@ -262,15 +289,17 @@ EventBus is a small hand-rolled emitter rather than `Phaser.Events.EventEmitter`
 precisely so the whole rules layer stays importable in Node.
 
 Coverage includes the condition evaluator, effect verbs, dice-pool
-distribution, JobManager lifecycle and persistence, editor history and painting
-operations, atomic content persistence and rollback, and game/editor dependency
-isolation. The content validator checks room dimensions, tile characters,
+distribution, JobManager lifecycle and persistence, the save round trip and
+checkpoint policy, editor history and painting operations, atomic content
+persistence and rollback, and game/editor dependency isolation. The content validator checks room dimensions, tile characters,
 player and entity coordinates, exits, doors, archetypes, items, dialogue links,
 job objectives and reachability from each level's start room.
 
 For automated or console-driven game checks,
 `apps/game/src/dev/harness.js` (dev builds only) exposes `window.__h` with
-`step`, `run`, `walk`, `tap`, `rig`, `shot` and `state`.
+`step`, `run`, `walk`, `tap`, `rig`, `shot`, `state` and `begin`.
+`h.begin()` skips the title screen into a fresh run (`h.begin('continue')`
+resumes the checkpoint) without synthesising keystrokes.
 `h.shot('name.png')` writes a PNG to `.shots/` through the game dev server.
 
 > Note when scripting the harness: Phaser's TweenManager derives its delta from

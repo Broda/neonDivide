@@ -6,6 +6,7 @@ import { DialogueScene } from './scenes/DialogueScene.js';
 import { GameOverScene } from './scenes/GameOverScene.js';
 import { HudScene } from './scenes/HudScene.js';
 import { JournalScene } from './scenes/JournalScene.js';
+import { TitleScene } from './scenes/TitleScene.js';
 import { WorldScene } from './scenes/WorldScene.js';
 
 const config = {
@@ -38,7 +39,10 @@ const config = {
     },
   },
 
-  scene: [BootScene, WorldScene, HudScene, DialogueScene, JournalScene, GameOverScene],
+  scene: [
+    BootScene, TitleScene, WorldScene, HudScene, DialogueScene, JournalScene,
+    GameOverScene,
+  ],
 };
 
 export const game = new Phaser.Game(config);

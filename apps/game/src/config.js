@@ -18,6 +18,7 @@ export const GAME_H = ROOM_PX_H + HUD_H;
 
 export const SCENES = {
   BOOT: 'Boot',
+  TITLE: 'Title',
   WORLD: 'World',
   HUD: 'Hud',
   DIALOGUE: 'Dialogue',

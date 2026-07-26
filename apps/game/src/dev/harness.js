@@ -122,6 +122,18 @@ export function installHarness(game) {
 
   api.world = () => game.scene.getScene('World');
   api.dialogue = () => game.scene.getScene('Dialogue');
+  api.title = () => game.scene.getScene('Title');
+
+  /**
+   * Get past the title screen without synthesising keystrokes. `'continue'`
+   * resumes the checkpoint; anything else starts a fresh run.
+   */
+  api.begin = (mode = 'new') => {
+    const title = api.title();
+    if (!title?.scene.isActive()) return 'not on the title screen';
+    title.startRun({ load: mode === 'continue' });
+    return api.step(2);
+  };
 
   /**
    * Force the next skill check's dice. Injected into the live DialogueRunner
@@ -140,10 +152,17 @@ export function installHarness(game) {
   /** Compact snapshot of everything worth asserting on. */
   api.state = () => {
     const w = api.world();
-    if (!w?.player) return { booting: true };
+    const active = () => game.scene.scenes.filter((x) => x.scene.isActive())
+      .map((x) => x.scene.key);
+    // No usable world means Boot or Title owns the screen - report which, so a
+    // stalled automation run says something more useful than "booting".
+    // Probing `anims` rather than `player`: returning to the title stops the
+    // World scene but leaves the scene object registered, still holding a
+    // reference to a destroyed player.
+    if (!w?.player?.anims) return { booting: true, scenes: active() };
     const s = w.state;
     return {
-      scenes: game.scene.scenes.filter((x) => x.scene.isActive()).map((x) => x.scene.key),
+      scenes: active(),
       room: w.roomId,
       player: {
         x: Math.round(w.player.x),
