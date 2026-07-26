@@ -38,6 +38,191 @@ export function paintTile(project, roomId, layer, x, y, character) {
   return next;
 }
 
+// --------------------------------------------------------- record creation
+
+const ROOM_W = 20;
+const ROOM_H = 15;
+
+/** Tile characters used for a blank room, from packages/content/data/tiles.json. */
+const FLOOR = 'f';
+const WALL_CAP = 'I';
+const WALL_SIDE = 'j';
+
+export const OPPOSITE_DIRECTION = Object.freeze({
+  north: 'south', south: 'north', east: 'west', west: 'east',
+});
+
+/**
+ * IDs are object keys in the canonical JSON, referenced by other records as
+ * bare strings, so they are kept to a conservative shape rather than allowing
+ * anything JSON would technically accept as a key.
+ */
+export const ID_PATTERN = /^[a-z][a-z0-9_]*$/;
+
+/** Every collection a new record could collide with, by kind. */
+function existingIds(project, kind) {
+  switch (kind) {
+    case 'room': return Object.keys(project.rooms);
+    case 'enemy': return Object.keys(project.actors.enemies);
+    case 'npc': return Object.keys(project.actors.npcs);
+    case 'item': return Object.keys(project.items);
+    case 'dialogue': return Object.keys(project.dialogues);
+    case 'job': return Object.keys(project.jobs);
+    default: return [];
+  }
+}
+
+/**
+ * @returns {string|null} why this id can't be used, or null if it can.
+ */
+export function idError(project, kind, id) {
+  if (!id) return 'An ID is required.';
+  if (!ID_PATTERN.test(id)) return 'Use lower case letters, digits and underscores, starting with a letter.';
+  if (existingIds(project, kind).includes(id)) return `"${id}" already exists.`;
+  return null;
+}
+
+function blankGround() {
+  return Array.from({ length: ROOM_H }, () => FLOOR.repeat(ROOM_W));
+}
+
+function blankDecor() {
+  return Array.from({ length: ROOM_H }, (_, y) => (
+    y === 0 || y === ROOM_H - 1
+      ? WALL_CAP.repeat(ROOM_W)
+      : WALL_SIDE + ' '.repeat(ROOM_W - 2) + WALL_SIDE
+  ));
+}
+
+/**
+ * Opens a two-tile gap in the wall on one edge.
+ *
+ * Without it the room is sealed: an exit only fires when the player reaches
+ * the edge band, which a solid wall tile stops them from ever touching.
+ */
+function punchDoorway(decor, direction) {
+  const rows = [...decor];
+  const clear = (x, y) => {
+    const row = [...rows[y]];
+    row[x] = ' ';
+    rows[y] = row.join('');
+  };
+  if (direction === 'north' || direction === 'south') {
+    const y = direction === 'north' ? 0 : ROOM_H - 1;
+    clear(9, y);
+    clear(10, y);
+  } else {
+    const x = direction === 'west' ? 0 : ROOM_W - 1;
+    clear(x, 7);
+    clear(x, 8);
+  }
+  return rows;
+}
+
+/**
+ * Directions off `roomId` that no exit already uses.
+ *
+ * Attaching to an occupied direction would replace that exit and strand
+ * whatever it led to, so the choice is restricted rather than validated after
+ * the fact.
+ */
+export function freeDirections(project, roomId) {
+  const exits = project.rooms[roomId]?.exits ?? {};
+  return Object.keys(OPPOSITE_DIRECTION).filter((direction) => !exits[direction]);
+}
+
+/** Rooms that still have somewhere to attach a neighbour. */
+export function connectableRooms(project) {
+  return Object.keys(project.rooms).filter((id) => freeDirections(project, id).length > 0);
+}
+
+/**
+ * Creates a room `direction` of `connectTo`, wired in both directions.
+ *
+ * The reciprocal exit and the level registration are not optional extras: a
+ * room listed in a level that can't be walked to from its start room is a
+ * validation *error*, so a half-connected room would block saving the project.
+ */
+export function createRoom(project, { id, name, connectTo, direction }) {
+  const next = structuredClone(project);
+  const back = OPPOSITE_DIRECTION[direction];
+
+  if (!next.rooms[connectTo]) throw new Error(`Unknown room "${connectTo}".`);
+  if (next.rooms[connectTo].exits?.[direction]) {
+    throw new Error(`"${connectTo}" already has a ${direction} exit to "${next.rooms[connectTo].exits[direction]}".`);
+  }
+
+  next.rooms[id] = {
+    id,
+    name,
+    spawn: [10, 7],
+    ground: blankGround(),
+    decor: punchDoorway(blankDecor(), back),
+    exits: { [back]: connectTo },
+    spawns: [],
+  };
+
+  const source = next.rooms[connectTo];
+  source.exits = { ...(source.exits ?? {}), [direction]: id };
+
+  const levelId = Object.keys(next.levels).find((key) => next.levels[key].rooms.includes(connectTo));
+  if (levelId) next.levels[levelId].rooms = [...next.levels[levelId].rooms, id];
+
+  return next;
+}
+
+export function createActor(project, category, { id, name, sheet }) {
+  const next = structuredClone(project);
+  next.actors[category][id] = category === 'enemies'
+    ? {
+      sheet, name, hp: 4, speed: 48, brain: 'patrol', damage: 1,
+      attackRange: 18, sightRange: 96,
+    }
+    : { sheet, name };
+  return next;
+}
+
+export function createItem(project, { id, name, icon, desc }) {
+  const next = structuredClone(project);
+  next.items[id] = { name, icon, desc };
+  return next;
+}
+
+export function createDialogue(project, { id, speaker, portrait }) {
+  const next = structuredClone(project);
+  next.dialogues[id] = {
+    id,
+    speaker,
+    ...(portrait ? { portrait } : {}),
+    start: 'start',
+    nodes: {
+      start: {
+        text: ['New dialogue.'],
+        choices: [{ text: 'Leave.', end: true }],
+      },
+    },
+  };
+  return next;
+}
+
+/**
+ * Seeds one objective: a job with an empty objective list has nothing
+ * outstanding, so JobManager would complete it the moment it started.
+ */
+export function createJob(project, { id, title, startRoom }) {
+  const next = structuredClone(project);
+  next.jobs[id] = {
+    id,
+    title,
+    brief: '',
+    payment: { nuyen: 0, karma: 0 },
+    objectives: [{
+      id: 'step1', type: 'reach', room: startRoom, text: 'New objective',
+    }],
+  };
+  return next;
+}
+
 export function resourceValue(project, name) {
   return name === 'project' ? project.manifest : project[name];
 }
