@@ -241,20 +241,34 @@ selected immediately so it can be edited in place.
 
 Records are created ready to save rather than as stubs that need repairing:
 
-- **Rooms** are walled 20×15 blanks with a two-tile doorway on the wall facing
-  the room they connect from, registered in that room's level, with the exit
-  wired in *both* directions. That is not a convenience — a room listed in a
-  level that can't be walked to from its start room is a validation error, so a
-  half-connected room would block saving the project. Sides that already carry
-  an exit are not offered, since attaching there would replace the exit and
-  strand whatever it led to. The room you connect *from* keeps its artwork
-  untouched, so it may need a matching doorway painted into its wall.
+- **Rooms** are walled 20×15 blanks, registered in the level of the room they
+  attach to, with the exit wired in *both* directions and a two-tile doorway
+  opened in *both* walls — so the connection is walkable from the moment it
+  exists. Neither half is a convenience. A room listed in a level that can't be
+  walked to from its start room is a validation error, so a half-connected room
+  would block saving the project; and an exit the player cannot physically
+  reach is worse than an error, because nothing reports it — the connection
+  just silently does nothing. Sides that already carry an exit are not offered,
+  since attaching there would replace that exit and strand whatever it led to.
 - **Actors** offer only sprite sheets that already exist, **items** only
   existing icons and **dialogue graphs** only existing portraits. All three are
   generated art, and a name with no PNG behind it fails at load time rather
   than in validation.
 - **Jobs** are seeded with one objective. A job with an empty objective list has
   nothing outstanding, so it would complete the instant it started.
+
+Opening the doorway is the one operation that edits art somebody already drew,
+so it is kept as narrow as it can be. It clears the two cells the doorway
+occupies and nothing else, and only where a tile actually collides — decoration
+sitting on that edge survives, and an edge that is already open is left alone.
+The dialog names the cost before you commit ("Clears 2 wall tiles from Neon
+Market to open the way through"), and `Ctrl+Z` undoes the whole creation.
+
+Both doorways land on the same cells (x 9–10 north/south, y 7–8 east/west,
+matching every hand-authored exit in the game) because
+`RoomManager.entryPosition` carries the player's perpendicular coordinate
+across the edge — a gap at y=7 leading to a gap at y=3 would deposit them
+against a wall.
 
 IDs become object keys that other records reference as bare strings, so they
 are restricted to lower case letters, digits and underscores, and are checked

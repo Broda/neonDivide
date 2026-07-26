@@ -4,9 +4,13 @@ import { describe, it } from 'node:test';
 import { PROJECT, validateProject } from '@neon-divide/content';
 import {
   commitHistory, connectableRooms, createActor, createDialogue, createHistory,
-  createItem, createJob, createRoom, dirtyResourceNames, freeDirections,
-  idError, layoutRooms, paintTile, redoHistory, undoHistory,
+  createItem, createJob, createRoom, dirtyResourceNames, doorwayCells,
+  doorwayEdits, freeDirections, idError, layoutRooms, paintTile, redoHistory,
+  undoHistory,
 } from '../src/model.js';
+
+/** Wall characters, as the editor derives them from the tileset metadata. */
+const SOLID = new Set(['|', '^', '#', 'I', 'j', 'N', 'W', 'w', 'C', 'L', '(']);
 
 /** Every creator has the same contract: the project stays saveable. */
 function assertValid(project) {
@@ -116,6 +120,56 @@ describe('creating rooms', () => {
     assert.equal(south.rooms.b_room.decor[0][10], ' ');
   });
 
+  it('opens the matching doorway in the room it connects from', () => {
+    // market's east wall is solid wall_side at the doorway rows.
+    assert.equal(PROJECT.rooms.market.decor[7][19], '|');
+    const next = createRoom(PROJECT, {
+      id: 'a_room', name: 'A', connectTo: 'market', direction: 'east', solidChars: SOLID,
+    });
+    assert.equal(next.rooms.market.decor[7][19], ' ');
+    assert.equal(next.rooms.market.decor[8][19], ' ');
+    // Only the doorway rows - the rest of that wall is left alone.
+    assert.equal(next.rooms.market.decor[6][19], PROJECT.rooms.market.decor[6][19]);
+    assert.equal(next.rooms.market.decor[9][19], PROJECT.rooms.market.decor[9][19]);
+  });
+
+  it('puts both doorways on the same cells so the crossing lines up', () => {
+    // RoomManager.entryPosition carries the perpendicular coordinate across.
+    const out = doorwayCells('east').map((cell) => cell.y);
+    const back = doorwayCells('west').map((cell) => cell.y);
+    assert.deepEqual(out, back);
+    assert.deepEqual(doorwayCells('north').map((cell) => cell.x), doorwayCells('south').map((cell) => cell.x));
+  });
+
+  it('removes only tiles that actually block', () => {
+    // Nothing is solid, so there is nothing worth clearing from the wall.
+    const next = createRoom(PROJECT, {
+      id: 'a_room', name: 'A', connectTo: 'market', direction: 'east', solidChars: new Set(),
+    });
+    assert.deepEqual(next.rooms.market.decor, PROJECT.rooms.market.decor);
+  });
+
+  it('clears whatever is in the way when solidity is unknown', () => {
+    const next = createRoom(PROJECT, {
+      id: 'a_room', name: 'A', connectTo: 'market', direction: 'east', solidChars: null,
+    });
+    assert.equal(next.rooms.market.decor[7][19], ' ');
+  });
+
+  it('leaves an already-open edge untouched', () => {
+    const opened = structuredClone(PROJECT);
+    const wall = [...opened.rooms.market.decor[7]];
+    wall[19] = ' ';
+    opened.rooms.market.decor[7] = wall.join('');
+
+    assert.deepEqual(doorwayEdits(opened.rooms.market, 'east', SOLID), [{ x: 19, y: 8 }]);
+    const next = createRoom(opened, {
+      id: 'a_room', name: 'A', connectTo: 'market', direction: 'east', solidChars: SOLID,
+    });
+    assert.equal(next.rooms.market.decor[7], opened.rooms.market.decor[7]);
+    assert.equal(next.rooms.market.decor[8][19], ' ');
+  });
+
   it('stays valid in every direction', () => {
     for (const direction of freeDirections(PROJECT, 'rooftop')) {
       assertValid(createRoom(PROJECT, {
@@ -126,9 +180,14 @@ describe('creating rooms', () => {
 
   it('leaves the canonical project untouched', () => {
     const exits = JSON.stringify(PROJECT.rooms.plaza.exits);
+    const decor = JSON.stringify(PROJECT.rooms.plaza.decor);
     const rooms = PROJECT.levels.level01.rooms.length;
-    createRoom(PROJECT, { id: 'c_room', name: 'C', connectTo: 'plaza', direction: 'west' });
+    createRoom(PROJECT, {
+      id: 'c_room', name: 'C', connectTo: 'plaza', direction: 'west', solidChars: SOLID,
+    });
     assert.equal(JSON.stringify(PROJECT.rooms.plaza.exits), exits);
+    // The source room's art is edited now, so it especially must be a copy.
+    assert.equal(JSON.stringify(PROJECT.rooms.plaza.decor), decor);
     assert.equal(PROJECT.levels.level01.rooms.length, rooms);
     assert.equal(PROJECT.rooms.c_room, undefined);
   });

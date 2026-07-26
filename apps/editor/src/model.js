@@ -95,26 +95,62 @@ function blankDecor() {
 }
 
 /**
+ * Where a doorway sits on a wall. Every hand-authored exit in the game uses
+ * these same cells, and they have to match on both sides of a connection:
+ * RoomManager.entryPosition carries the player's perpendicular coordinate
+ * across the edge, so a gap at y=7 leading to a gap at y=3 would drop them
+ * against a wall.
+ */
+const DOORWAY_ACROSS_X = [9, 10];
+const DOORWAY_ACROSS_Y = [7, 8];
+
+/** The cells a doorway occupies on one wall. */
+export function doorwayCells(direction) {
+  switch (direction) {
+    case 'north': return DOORWAY_ACROSS_X.map((x) => ({ x, y: 0 }));
+    case 'south': return DOORWAY_ACROSS_X.map((x) => ({ x, y: ROOM_H - 1 }));
+    case 'west': return DOORWAY_ACROSS_Y.map((y) => ({ x: 0, y }));
+    default: return DOORWAY_ACROSS_Y.map((y) => ({ x: ROOM_W - 1, y }));
+  }
+}
+
+/**
+ * Which doorway cells actually need clearing in an existing room.
+ *
+ * `solidChars` is the set of legend characters whose tiles collide, taken from
+ * the generated tileset metadata. Filtering by it means a doorway removes only
+ * what blocks the player and leaves decoration that happens to sit on the edge
+ * alone. Passing null clears anything in the way.
+ *
+ * @param {{ decor: string[] }} room
+ * @param {string} direction
+ * @param {Set<string>|null} [solidChars]
+ * @returns {Array<{ x: number, y: number }>}
+ */
+export function doorwayEdits(room, direction, solidChars = null) {
+  return doorwayCells(direction).filter(({ x, y }) => {
+    const character = room.decor[y][x];
+    if (character === ' ') return false;
+    return solidChars ? solidChars.has(character) : true;
+  });
+}
+
+/**
  * Opens a two-tile gap in the wall on one edge.
  *
- * Without it the room is sealed: an exit only fires when the player reaches
- * the edge band, which a solid wall tile stops them from ever touching.
+ * Without it a room is sealed: an exit only fires once the player reaches the
+ * edge band, which a solid wall tile stops them from ever touching.
+ *
+ * @param {{ decor: string[] }} room
+ * @param {string} direction
+ * @param {Set<string>|null} [solidChars]
  */
-function punchDoorway(decor, direction) {
-  const rows = [...decor];
-  const clear = (x, y) => {
+function openDoorway(room, direction, solidChars = null) {
+  const rows = [...room.decor];
+  for (const { x, y } of doorwayEdits(room, direction, solidChars)) {
     const row = [...rows[y]];
     row[x] = ' ';
     rows[y] = row.join('');
-  };
-  if (direction === 'north' || direction === 'south') {
-    const y = direction === 'north' ? 0 : ROOM_H - 1;
-    clear(9, y);
-    clear(10, y);
-  } else {
-    const x = direction === 'west' ? 0 : ROOM_W - 1;
-    clear(x, 7);
-    clear(x, 8);
   }
   return rows;
 }
@@ -137,13 +173,20 @@ export function connectableRooms(project) {
 }
 
 /**
- * Creates a room `direction` of `connectTo`, wired in both directions.
+ * Creates a room `direction` of `connectTo`, wired in both directions and
+ * walkable from both sides.
  *
  * The reciprocal exit and the level registration are not optional extras: a
  * room listed in a level that can't be walked to from its start room is a
  * validation *error*, so a half-connected room would block saving the project.
+ *
+ * The doorway is opened on both sides for the same reason. An exit the player
+ * cannot physically reach is not an error the validator can see - it is a
+ * connection that simply does nothing, which is worse.
  */
-export function createRoom(project, { id, name, connectTo, direction }) {
+export function createRoom(project, {
+  id, name, connectTo, direction, solidChars = null,
+}) {
   const next = structuredClone(project);
   const back = OPPOSITE_DIRECTION[direction];
 
@@ -152,18 +195,21 @@ export function createRoom(project, { id, name, connectTo, direction }) {
     throw new Error(`"${connectTo}" already has a ${direction} exit to "${next.rooms[connectTo].exits[direction]}".`);
   }
 
-  next.rooms[id] = {
+  const created = {
     id,
     name,
     spawn: [10, 7],
     ground: blankGround(),
-    decor: punchDoorway(blankDecor(), back),
+    decor: blankDecor(),
     exits: { [back]: connectTo },
     spawns: [],
   };
+  created.decor = openDoorway(created, back);
+  next.rooms[id] = created;
 
   const source = next.rooms[connectTo];
   source.exits = { ...(source.exits ?? {}), [direction]: id };
+  source.decor = openDoorway(source, direction, solidChars);
 
   const levelId = Object.keys(next.levels).find((key) => next.levels[key].rooms.includes(connectTo));
   if (levelId) next.levels[levelId].rooms = [...next.levels[levelId].rooms, id];

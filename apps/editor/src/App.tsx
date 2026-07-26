@@ -9,8 +9,9 @@ import {
 import { loadProject, saveProject } from './api';
 import {
   commitHistory, connectableRooms, createActor, createDialogue, createHistory,
-  createItem, createJob, createRoom, dirtyResourceNames, freeDirections,
-  idError, layoutRooms, paintTile, redoHistory, resourceValue, undoHistory,
+  createItem, createJob, createRoom, dirtyResourceNames, doorwayEdits,
+  freeDirections, idError, layoutRooms, paintTile, redoHistory, resourceValue,
+  undoHistory,
 } from './model.js';
 
 type Section = 'world' | 'rooms' | 'actors' | 'items' | 'dialogues' | 'jobs';
@@ -78,7 +79,8 @@ interface NewField {
   /** A function when the legal choices depend on another field's value. */
   options?: string[] | ((values: LooseRecord) => string[]);
   optionLabel?: (value: string) => string;
-  hint?: string;
+  /** A function when the hint should describe the current selection. */
+  hint?: string | ((values: LooseRecord) => string);
   optional?: boolean;
 }
 
@@ -143,8 +145,9 @@ function NewRecordDialog({
         </Field>
         {fields.map((field) => {
           const options = optionsFor(field);
+          const hint = typeof field.hint === 'function' ? field.hint(effective) : field.hint;
           return (
-            <Field label={field.label} key={field.key} hint={field.hint}>
+            <Field label={field.label} key={field.key} hint={hint}>
               {options
                 ? (
                   <select value={effective[field.key] ?? ''} onChange={(event) => set(field.key, event.target.value)}>
@@ -223,6 +226,16 @@ function RoomEditor({
   useEffect(() => { fetch('/assets/tiles_neokyoto.json').then((response) => response.json()).then(setMeta); }, []);
   useEffect(() => setSpawnIndex(null), [roomId]);
 
+  // Which legend characters actually collide. Opening a doorway uses this so
+  // it removes only what blocks the player, leaving decoration that happens to
+  // sit on the edge alone. Null until the generated metadata arrives, which
+  // falls back to clearing whatever is in the way.
+  const solidChars = useMemo(() => (meta
+    ? new Set(Object.entries(project.tiles.legend)
+      .filter(([, name]) => meta.tiles.find((entry) => entry.name === name)?.solid)
+      .map(([character]) => character))
+    : null), [meta, project.tiles.legend]);
+
   const room = project.rooms[roomId];
   if (!room) return <Empty>Select a room to begin editing.</Empty>;
   const selectedSpawn = spawnIndex === null ? null : room.spawns?.[spawnIndex] as LooseRecord | undefined;
@@ -263,12 +276,21 @@ function RoomEditor({
               // Directions already in use would otherwise be overwritten,
               // stranding whatever they led to.
               options: (values) => freeDirections(project, values.connectTo),
-              hint: 'Both exits are wired, and the new room gets a doorway on the facing wall. The room you connect from may need one painted to match.',
+              // Spells out the edit to the existing room, since that is the
+              // one thing here that changes art somebody already drew.
+              hint: (values) => {
+                const source = project.rooms[values.connectTo];
+                if (!source || !values.direction) return 'Both exits are wired and a doorway is opened on each side.';
+                const edits = doorwayEdits(source, values.direction, solidChars);
+                return edits.length === 0
+                  ? `Both exits are wired. ${source.name}'s ${values.direction} wall is already open.`
+                  : `Both exits are wired. Clears ${edits.length} wall tile${edits.length === 1 ? '' : 's'} from ${source.name} to open the way through.`;
+              },
             },
           ]}
           onCancel={() => setCreating(false)}
           onCreate={(values) => {
-            onChange(createRoom(project, values as any));
+            onChange(createRoom(project, { ...values, solidChars } as any));
             onRoomId(values.id);
             setSpawnIndex(null);
             setCreating(false);
