@@ -77,6 +77,7 @@ export const EV = {
   ITEM_USED: 'item.used',
   FLAG_SET: 'flag.set',
   STATE_CHANGED: 'state.changed',
+  GAME_SAVED: 'game.saved',
   // quests
   JOB_STARTED: 'job.started',
   JOB_OBJECTIVE_DONE: 'job.objective.done',

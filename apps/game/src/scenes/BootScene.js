@@ -61,7 +61,15 @@ export class BootScene extends Phaser.Scene {
     for (const sheet of ALL_SHEETS) registerActorAnims(this, sheet);
     registerFxAnims(this);
 
-    this.scene.start(SCENES.WORLD);
-    this.scene.launch(SCENES.HUD);
+    // The editor's Playtest button deep-links to a room (?debug&room=...), and
+    // routing that through the title screen would throw the deep link away.
+    const query = new URLSearchParams(location.search);
+    if (import.meta.env.DEV && query.has('room')) {
+      this.scene.start(SCENES.WORLD);
+      this.scene.launch(SCENES.HUD);
+      return;
+    }
+
+    this.scene.start(SCENES.TITLE);
   }
 }

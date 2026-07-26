@@ -44,6 +44,12 @@ export class HudScene extends Phaser.Scene {
 
     this.roomText = makeText(this, GAME_W - 6, 4, '', { color: UI.dim, origin: [1, 0] });
 
+    // Checkpoint feedback. Deliberately small and brief: it confirms the save
+    // happened without competing with the toast lane for attention.
+    this.savedText = makeText(this, GAME_W / 2, 4, 'SAVED', {
+      color: UI.green, origin: [0.5, 0],
+    }).setAlpha(0);
+
     // job tracker
     this.tracker = makeText(this, GAME_W - 4, HUD_H + 6, '', {
       color: UI.cyanBright, align: 2, origin: [1, 0],
@@ -87,6 +93,7 @@ export class HudScene extends Phaser.Scene {
     on(EV.STATE_CHANGED, this.refresh);
     on(EV.TOAST, this.toast);
     on(EV.ROOM_ENTERED, this.onRoom);
+    on(EV.GAME_SAVED, this.onSaved);
     on(EV.JOB_STARTED, this.refresh);
     on(EV.JOB_OBJECTIVE_DONE, this.refresh);
     on(EV.JOB_COMPLETED, this.refresh);
@@ -95,6 +102,16 @@ export class HudScene extends Phaser.Scene {
   onRoom({ name }) {
     this.roomText.setText(String(name ?? '').toUpperCase());
     this.refresh();
+  }
+
+  onSaved() {
+    // Saves can land back-to-back (a job completing on room entry), and a
+    // second tween on the same target would fight the first one's alpha.
+    this.tweens.killTweensOf(this.savedText);
+    this.savedText.setAlpha(1);
+    this.tweens.add({
+      targets: this.savedText, alpha: 0, delay: 800, duration: 500,
+    });
   }
 
   refresh() {

@@ -2,6 +2,20 @@ import { bus, EV } from './EventBus.js';
 
 const SAVE_KEY = 'neon-divide-save-v1';
 
+/** Bumped when the saved shape changes; older blobs are ignored, not migrated. */
+export const SAVE_VERSION = 1;
+
+/**
+ * Where saves are written. Defaults to the browser's localStorage and is
+ * swappable so the persistence rules stay testable under `node --test` along
+ * with the rest of the rules layer.
+ */
+let storage = globalThis.localStorage ?? null;
+
+export function setStorage(impl) {
+  storage = impl;
+}
+
 /**
  * Every mutable fact about the run: the character sheet, the wallet, the
  * inventory, and the flag store. Quest progress is kept as flags too, so a
@@ -175,8 +189,14 @@ export class GameState {
   }
 
   save() {
+    if (!storage) return false;
     try {
-      localStorage.setItem(SAVE_KEY, JSON.stringify(this.serialize()));
+      storage.setItem(SAVE_KEY, JSON.stringify({
+        version: SAVE_VERSION,
+        savedAt: Date.now(),
+        ...this.serialize(),
+      }));
+      bus.emit(EV.GAME_SAVED, { room: this.currentRoom });
       return true;
     } catch {
       return false; // private browsing / quota - not worth interrupting play
@@ -184,19 +204,42 @@ export class GameState {
   }
 
   load() {
+    const data = GameState.peekSave();
+    if (!data) return false;
+    this.deserialize(data);
+    // Saves are only written on entering a room, so a dead-on-load blob should
+    // be impossible - clamp anyway rather than resuming into an instant death.
+    this.hp = Math.min(Math.max(1, this.hp), this.maxHp);
+    return true;
+  }
+
+  /**
+   * Reads the save without touching the live run, so the title screen can
+   * describe it and decide whether to offer Continue at all.
+   * @returns {object|null} the stored blob, or null if there isn't a usable one
+   */
+  static peekSave() {
+    if (!storage) return null;
     try {
-      const raw = localStorage.getItem(SAVE_KEY);
-      if (!raw) return false;
-      this.deserialize(JSON.parse(raw));
-      return true;
+      const raw = storage.getItem(SAVE_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      // A blob from an older shape would deserialize into a half-valid run,
+      // which is worse than offering no save at all.
+      if (!data || data.version !== SAVE_VERSION) return null;
+      return data;
     } catch {
-      return false;
+      return null;
     }
+  }
+
+  static hasSave() {
+    return GameState.peekSave() !== null;
   }
 
   static clearSave() {
     try {
-      localStorage.removeItem(SAVE_KEY);
+      storage?.removeItem(SAVE_KEY);
     } catch { /* ignore */ }
   }
 }
