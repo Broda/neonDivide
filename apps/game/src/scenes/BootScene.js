@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 
 import { ACTOR_FRAME, GAME_W, GAME_H, SCENES } from '../config.js';
 import { registerActorAnims, registerFxAnims } from '../core/AnimationFactory.js';
+import { installAudio } from '../core/audio.js';
 import { ALL_SHEETS } from '../data/actors.js';
 import { registerFont } from '../ui/text.js';
 
@@ -23,6 +24,16 @@ export class BootScene extends Phaser.Scene {
     // Tileset: loaded as a plain image because addTilesetImage slices it itself.
     this.load.image('tiles', 'tiles_neokyoto.png');
     this.load.json('tilesmeta', 'tiles_neokyoto.json');
+
+    // The sound list lives in the manifest, so queue the clips as soon as it
+    // lands rather than restating them here - adding a sound to
+    // tools/gen_sfx.py should never mean editing this file. Registered before
+    // the load call so the callback cannot be missed.
+    this.load.once('filecomplete-json-fxmeta', (_key, _type, manifest) => {
+      for (const name of Object.keys(manifest.sfx ?? {})) {
+        this.load.audio(name, `sfx_${name}.wav`);
+      }
+    });
     this.load.json('fxmeta', 'fx_manifest.json');
 
     for (const sheet of ALL_SHEETS) {
@@ -57,9 +68,20 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
-    registerFont(this, this.cache.json.get('fxmeta').font);
+    const fxmeta = this.cache.json.get('fxmeta');
+    registerFont(this, fxmeta.font);
     for (const sheet of ALL_SHEETS) registerActorAnims(this, sheet);
     registerFxAnims(this);
+
+    // `this.sound` is the game-wide manager, not a per-scene one, so the audio
+    // system is installed once here and outlives every scene change.
+    const audio = installAudio(this.sound, fxmeta);
+    this.game.audio = audio;
+    // Bound on the window rather than a scene: mute has to work on the title
+    // screen, mid-dialogue and on the death screen alike.
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'm' || event.key === 'M') audio.toggle();
+    });
 
     // The editor's Playtest button deep-links to a room (?debug&room=...), and
     // routing that through the title screen would throw the deep link away.

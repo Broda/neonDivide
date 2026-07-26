@@ -89,6 +89,7 @@ export class Player extends Actor {
     this.faceVector(vx, vy);
     this.playPose('walk');
     this.scene.spawnDashTrail?.(this);
+    bus.emit(EV.PLAYER_DASHED, {});
   }
 
   melee() {
@@ -100,6 +101,7 @@ export class Player extends Actor {
 
     const rect = this.meleeRect();
     this.scene.spawnSlash(this, rect);
+    bus.emit(EV.MELEE_SWUNG, { facing: this.facing });
 
     // The hitbox is evaluated once, a beat after the swing starts, so the
     // visual and the damage line up.
@@ -130,6 +132,7 @@ export class Player extends Actor {
   fire() {
     if (this.state.ammo <= 0) {
       bus.emit(EV.TOAST, { text: 'CLICK. Dry.', tone: 'bad' });
+      bus.emit(EV.ACTION_DENIED, { reason: 'ammo' });
       this.nextFire = this.scene.time.now + 300;
       return;
     }

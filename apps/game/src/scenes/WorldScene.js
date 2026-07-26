@@ -274,6 +274,8 @@ export class WorldScene extends Phaser.Scene {
     b.setRotation(Math.atan2(dir.y, dir.x));
     b.setData('damage', opts.damage);
     b.setData('friendly', Boolean(opts.friendly));
+    // Emitted here rather than from Player.fire so enemy shots are heard too.
+    bus.emit(EV.SHOT_FIRED, { friendly: Boolean(opts.friendly) });
 
     const muzzle = this.add.sprite(x, y, 'fx_muzzle', 0).setDepth(DEPTH.FX);
     muzzle.setRotation(Math.atan2(dir.y, dir.x));
@@ -326,6 +328,7 @@ export class WorldScene extends Phaser.Scene {
   raiseAlarm(source) {
     if (this._alarmed) return;
     this._alarmed = true;
+    bus.emit(EV.ALARM_RAISED, { room: this.roomId });
     bus.emit(EV.TOAST, { text: '!! ALARM RAISED !!', tone: 'bad' });
     this.cameras.main.flash(160, 90, 0, 0);
     const spawns = this.rooms.def?.reinforcements ?? [];

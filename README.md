@@ -5,8 +5,9 @@ directional melee, knockback and i-frames — wearing a cyberpunk skin, with
 *Shadowrun*-style jobs: branching dialogue, dice-pool skill checks, and
 obstacles that have more than one solution.
 
-All art is **generated**, not sourced: a Python/Pillow pipeline draws the
-tilesheet and the animated character spritesheets that the game loads at runtime.
+Every asset is **generated**, not sourced: a Python pipeline draws the
+tilesheet and the animated character spritesheets, and synthesises the sound
+effects from oscillators and envelopes. Same source, same bytes, every run.
 
 Built on **Phaser 4** + **Vite**. One level ships (`level01`, 8 screens), but
 every content axis is data-driven — tiles, rooms, actors, items, jobs, dialogue,
@@ -45,7 +46,7 @@ the editor's **Playtest** button to open the selected room.
 
 | Script | What it does |
 |---|---|
-| `npm run assets` | Regenerates every PNG + metadata JSON into `apps/game/public/assets/` (needs Python 3 with Pillow) |
+| `npm run assets` | Regenerates every PNG, WAV + metadata JSON into `apps/game/public/assets/` (needs Python 3 with Pillow) |
 | `npm run dev:game` | Game dev server on :5173 |
 | `npm run dev:editor` | Local content editor on :5174 |
 | `npm run build:game` | Production game bundle in `apps/game/dist/` |
@@ -68,12 +69,44 @@ state readout, and hotkeys (`1` heal, `2` ammo, `3` next room).
 | `E` | Talk / use / open doors |
 | `TAB` | Job log + character sheet |
 | `1`–`6` | Pick a dialogue option |
+| `M` | Mute / unmute (remembered) |
 
 On the title screen and in dialogue, `W`/`S` (or the arrows) move the cursor and
 `E` confirms. The death screen offers `E` to reload the last checkpoint, `N` for
 a new run and `T` to return to the title.
 
 ---
+
+## Sound
+
+The 19 sound effects are synthesised, not sampled. `tools/gen_sfx.py` builds
+each one from square, saw, triangle and pitched-noise oscillators through an
+attack/decay envelope, quantised to a handful of amplitude steps — the audible
+equivalent of the pixel art's limited palette. `tools/synth.py` holds the
+primitives and is the audio counterpart to `pixel.py`: buffers of floats in
+−1..1 at 22050 Hz mono, with seeded randomness so regeneration is
+byte-reproducible.
+
+The whole soundtrack is ~200 lines of source and 194 KB of output, a new effect
+is one decorated function, and there is no file anybody has to find a licence
+for. Every clip is normalised to the same peak on write, so the `volume` in the
+manifest describes a sound's place in the mix rather than compensating for how
+hot its synthesis happened to come out.
+
+`apps/game/src/core/audio.js` maps events to sounds in one table and subscribes
+to the bus — an entity never needs to know an audio system exists, for the same
+reason `JobManager` listens rather than being called. Adding a sound to an
+existing moment is one line in `SOUND_FOR_EVENT`; a value can be a function of
+the payload, which is how a collected `nuyen` sounds different from a collected
+medkit and a passed skill check sounds different from a failed one.
+
+Identical sounds are gated to one start per 45 ms. A single melee swing can
+land on three enemies in the same frame, and three copies of one sample
+starting together do not sound three times louder — they clip.
+
+`M` mutes, from anywhere, and the preference persists. Because the title screen
+takes a keypress to leave, the browser's autoplay lock is always released
+before the first gameplay sound would fire.
 
 ## Saving
 
@@ -101,7 +134,7 @@ persistence headlessly alongside the rest of the rules layer.
 ## How it fits together
 
 ```
-tools/                    Python asset pipeline -> apps/game/public/assets/
+tools/                    Python asset + audio pipeline -> apps/game/public/assets/
 apps/
   game/
     src/
@@ -140,6 +173,20 @@ For the same reason the game scales by **whole multiples only**
 `apps/game/src/main.js`).
 `Scale.FIT` would pick a fractional factor like 4.21×, making some source pixels
 4 screen pixels wide and others 5 — text is where that unevenness shows worst.
+
+The same rule applies *inside* the canvas, and its failure mode is much less
+obvious than blur. Sampling is NEAREST, so text drawn on a half pixel does not
+soften — it reads the neighbouring row of the atlas, and the atlas is 20 glyphs
+wide, so you get a crisp, confident, entirely **different** letter. "JACK IN"
+renders as "2JHUK IN".
+
+Two things keep that from happening. The font's line height is deliberately
+**even** (8px cell + 2px spacing, set in `tools/gen_font.py` and mirrored by
+`LINE_H`), so centring a label with a `0.5` origin cannot land on a half pixel
+however many lines it has. And `apps/game/src/ui/snap.js` nudges any text
+object onto the grid, which `makeText` applies on creation — call it again
+after moving or re-texting centred text, because a new string can change the
+height the origin is measured against.
 
 Three design decisions carry most of the extensibility:
 
@@ -281,6 +328,9 @@ The editor owns game content, not generated artwork or executable behavior.
 These operations remain code workflows:
 
 - **New glyph:** update `tools/gen_font.py`, then run `npm run assets`.
+- **New sound:** add a `@sfx`-decorated function to `tools/gen_sfx.py`, then
+  run `npm run assets`. Map it to an event in `apps/game/src/core/audio.js`;
+  the boot scene picks the clip up from the manifest without being edited.
 - **New tile artwork:** add the tile generator to `tools/gen_tileset.py`, add
   its legend character to `packages/content/data/tiles.json`, then run
   `npm run assets`. Collision comes from the generated tile metadata.
@@ -330,7 +380,8 @@ precisely so the whole rules layer stays importable in Node.
 
 Coverage includes the condition evaluator, effect verbs, dice-pool
 distribution, JobManager lifecycle and persistence, the save round trip and
-checkpoint policy, editor history, painting and record creation, atomic content
+checkpoint policy, audio event routing and retrigger gating, editor history,
+painting and record creation, atomic content
 persistence and rollback, and game/editor dependency isolation. Every record
 creator is asserted to leave the project passing validation, which is the whole
 contract: creating something must never hand the author a project they cannot

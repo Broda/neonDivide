@@ -156,6 +156,11 @@ def build(out_png):
         'width': CELL_W,
         'height': CELL_H,
         'charsPerRow': CHARS_PER_ROW,
-        'lineSpacing': 1,
+        # Keep (CELL_H + lineSpacing) EVEN. Phaser adds the spacing to every
+        # line including the last, so this is the height of a one-line label -
+        # and an odd height centred with a 0.5 origin draws on a half pixel.
+        # With NEAREST sampling that does not blur the glyph, it samples the
+        # next row of this atlas, which is a different character entirely.
+        'lineSpacing': 2,
         'count': len(CHARS),
     }

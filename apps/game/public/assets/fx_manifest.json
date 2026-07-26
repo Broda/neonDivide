@@ -107,7 +107,85 @@
     "width": 6,
     "height": 8,
     "charsPerRow": 20,
-    "lineSpacing": 1,
+    "lineSpacing": 2,
     "count": 100
+  },
+  "sfx": {
+    "slash": {
+      "volume": 0.45,
+      "seconds": 0.13
+    },
+    "shoot": {
+      "volume": 0.35,
+      "seconds": 0.085
+    },
+    "dash": {
+      "volume": 0.4,
+      "seconds": 0.17
+    },
+    "hurt": {
+      "volume": 0.6,
+      "seconds": 0.24
+    },
+    "death": {
+      "volume": 0.75,
+      "seconds": 0.9
+    },
+    "hit": {
+      "volume": 0.5,
+      "seconds": 0.09
+    },
+    "enemy_down": {
+      "volume": 0.5,
+      "seconds": 0.225
+    },
+    "alarm": {
+      "volume": 0.55,
+      "seconds": 0.64
+    },
+    "pickup": {
+      "volume": 0.45,
+      "seconds": 0.11
+    },
+    "nuyen": {
+      "volume": 0.4,
+      "seconds": 0.135
+    },
+    "door": {
+      "volume": 0.5,
+      "seconds": 0.28
+    },
+    "terminal": {
+      "volume": 0.4,
+      "seconds": 0.186
+    },
+    "deny": {
+      "volume": 0.5,
+      "seconds": 0.19
+    },
+    "objective": {
+      "volume": 0.45,
+      "seconds": 0.12
+    },
+    "job": {
+      "volume": 0.5,
+      "seconds": 0.225
+    },
+    "job_done": {
+      "volume": 0.6,
+      "seconds": 0.51
+    },
+    "save": {
+      "volume": 0.3,
+      "seconds": 0.12
+    },
+    "select": {
+      "volume": 0.3,
+      "seconds": 0.035
+    },
+    "confirm": {
+      "volume": 0.4,
+      "seconds": 0.09
+    }
   }
 }

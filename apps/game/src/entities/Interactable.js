@@ -89,6 +89,7 @@ export class Interactable {
           text: `LOCKED — needs ${this.lockText() || 'authorisation'}`,
           tone: 'bad',
         });
+        bus.emit(EV.ACTION_DENIED, { reason: 'locked', id: this.id });
       }
       return;
     }
