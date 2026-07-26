@@ -73,6 +73,7 @@ export class Enemy extends Actor {
       stunMs: 180,
     });
     if (landed && !this.dead) {
+      bus.emit(EV.ENEMY_HURT, { archetype: this.archetype, amount });
       // Getting shot from off-screen should still pull aggro.
       this.mem.alerted = true;
       this.mem.loseAt = this.scene.time.now + 3000;

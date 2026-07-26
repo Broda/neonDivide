@@ -18,6 +18,7 @@ OUT = ROOT.parent / 'apps' / 'game' / 'public' / 'assets'
 import gen_actors  # noqa: E402
 import gen_font  # noqa: E402
 import gen_fx  # noqa: E402
+import gen_sfx  # noqa: E402
 import gen_tileset  # noqa: E402
 
 
@@ -48,6 +49,9 @@ def main():
 
     manifest['font'] = gen_font.build(OUT / 'ui_font.png')
     print(f'  font        {manifest["font"]["count"]} glyphs -> ui_font.png')
+
+    n_sfx = gen_sfx.build_all(OUT, manifest)
+    print(f'  sfx         {n_sfx:3d} sounds -> sfx_*.wav')
 
     with open(OUT / 'fx_manifest.json', 'w', encoding='utf-8') as fh:
         json.dump(manifest, fh, indent=2)

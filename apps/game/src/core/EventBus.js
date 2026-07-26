@@ -65,9 +65,14 @@ export const EV = {
   ROOM_ENTERED: 'room.entered',
   ROOM_LEFT: 'room.left',
   // combat
+  MELEE_SWUNG: 'melee.swung',
+  SHOT_FIRED: 'shot.fired',
+  PLAYER_DASHED: 'player.dashed',
+  ENEMY_HURT: 'enemy.hurt',
   ENEMY_KILLED: 'enemy.killed',
   PLAYER_HURT: 'player.hurt',
   PLAYER_DIED: 'player.died',
+  ALARM_RAISED: 'alarm.raised',
   // interaction
   NPC_TALKED: 'npc.talked',
   TERMINAL_USED: 'terminal.used',
@@ -84,6 +89,10 @@ export const EV = {
   JOB_COMPLETED: 'job.completed',
   JOB_FAILED: 'job.failed',
   // ui
+  /** The game's "no": a dry pistol, a locked door, a refused request. */
+  ACTION_DENIED: 'ui.denied',
+  UI_MOVED: 'ui.moved',
+  UI_CONFIRMED: 'ui.confirmed',
   TOAST: 'ui.toast',
   DIALOGUE_START: 'dialogue.start',
   DIALOGUE_END: 'dialogue.end',

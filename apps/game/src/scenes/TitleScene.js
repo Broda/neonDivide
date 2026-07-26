@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 
 import { GAME_H, GAME_W, SCENES } from '../config.js';
+import { bus, EV } from '../core/EventBus.js';
 import { GameState, state } from '../core/GameState.js';
 import { LEVEL_01 } from '../data/rooms/level01/index.js';
 import { LINE_H, makeText, UI } from '../ui/text.js';
@@ -46,9 +47,13 @@ export class TitleScene extends Phaser.Scene {
       color: UI.dim, align: 1, origin: [0.5, 0],
     });
 
-    makeText(this, cx, GAME_H - 12, '[W/S] select   [E] confirm', {
+    // The title screen is where the mute key gets discovered: it is the only
+    // place with room for the hint, and the only place with no HUD to toast to.
+    this.footer = makeText(this, cx, GAME_H - 12, '', {
       color: UI.faint, origin: [0.5, 0.5],
     });
+    this.footerMuted = null;
+    this.renderFooter();
 
     this.refresh();
     this.bindKeys();
@@ -113,7 +118,16 @@ export class TitleScene extends Phaser.Scene {
     ].join('\n');
   }
 
+  /** Only redraws when the mute state actually changed. */
+  renderFooter() {
+    const muted = Boolean(this.game.audio?.muted);
+    if (muted === this.footerMuted) return;
+    this.footerMuted = muted;
+    this.footer.setText(`[W/S] select   [E] confirm   [M] sound ${muted ? 'off' : 'on'}`);
+  }
+
   update() {
+    this.renderFooter();
     const k = this.keys;
     const n = this.items.length;
 
@@ -131,11 +145,13 @@ export class TitleScene extends Phaser.Scene {
     // Moving off the erase row is the cancel gesture; there's no other way out.
     this.pendingErase = false;
     this.render();
+    bus.emit(EV.UI_MOVED, {});
   }
 
   choose() {
     const item = this.items[this.selected];
     if (!item) return;
+    bus.emit(EV.UI_CONFIRMED, { item: item.id });
 
     if (item.id === 'erase') {
       if (!this.pendingErase) {

@@ -100,9 +100,11 @@ export class DialogueScene extends Phaser.Scene {
     if (justDown(k.up) || justDown(k.upArrow)) {
       this.selected = (this.selected - 1 + n) % n;
       this.render();
+      bus.emit(EV.UI_MOVED, {});
     } else if (justDown(k.down) || justDown(k.downArrow)) {
       this.selected = (this.selected + 1) % n;
       this.render();
+      bus.emit(EV.UI_MOVED, {});
     } else if (justDown(k.confirm) || justDown(k.enter) || justDown(k.space)) {
       this.pickIndex(this.selected);
     }
@@ -111,7 +113,12 @@ export class DialogueScene extends Phaser.Scene {
   pickIndex(displayIndex) {
     if (this.view.finished || this.view.canAdvance) return;
     const choice = this.view.choices[displayIndex];
-    if (!choice || choice.locked) return;
+    if (!choice) return;
+    if (choice.locked) {
+      bus.emit(EV.ACTION_DENIED, { reason: 'choice_locked' });
+      return;
+    }
+    bus.emit(EV.UI_CONFIRMED, {});
     this.selected = displayIndex;
     // choice.index is the index in the authored array, which may differ from
     // the displayed order once hidden options are filtered out.
